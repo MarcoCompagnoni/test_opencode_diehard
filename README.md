@@ -17,7 +17,7 @@ The solver includes a mathematical pre-check using the Greatest Common Divisor (
 - **BFS Tree Visualization**: Real parent-child hierarchy visualization using Graphviz with 2-color scheme:
    - **Light Red**: States visited during BFS exploration
    - **Blue**: States in the solution path (highlighted with thicker edges)
-- **Deployment Optimization**: Uses Streamlit caching (`@st.cache_data`) for high-performance result retrieval and smooth UI experience
+- **Deployment Optimization**: Uses Streamlit caching (`@st.cache_data`) for high-performance result retrieval and smooth UI experience. Includes a **ValueError fix** for production: implemented forced cache invalidation by renaming cached functions to prevent crashes from stale data structures.
 - **Animated Streamlit GUI**: Interactive web interface with:
    - **Proportional jug scaling**: Jug height dynamically adjusted based on capacity
    - **Bottom-aligned jugs**: Jugs visually aligned to the bottom (like on a table) using spacer divs
@@ -122,6 +122,10 @@ test_opencode_diehard/
   - Automatic complexity management: ensures solution path is always visible while limiting total nodes for performance.
 
 Both modules are fully documented with Google-style docstrings and comprehensive type hints.
+
+### Production Robustness
+
+- **Cache Invalidation**: To prevent `ValueError` during deployment (often caused by schema changes in cached objects), the application uses a function renaming strategy. This forces Streamlit to invalidate old cache entries, ensuring the app always runs with the latest data structures.
 
 ### Mathematical Foundation
 

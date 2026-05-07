@@ -15,6 +15,7 @@
 - [x] **2026-05-07** - Enhanced solver: added `bfs_solve_with_visited` and `simulate_solution` to `solver.py`
 - [x] **2026-05-07** - Tree visualization in GUI: `app.py` now displays real BFS tree with 2-color scheme (light red=visited, blue=solution path)
 - [x] **2026-05-07** - Performance optimization: added Streamlit caching (`@st.cache_data`) for BFS results
+- [x] **2026-05-07** - Robustness fix: resolved `ValueError` in production related to stale cache data by renaming the cached solver function (forced cache invalidation)
 - [x] **2026-05-07** - Code optimization for deployment
 - [ ] Add BFS generator variant in `solver.py` for real-time step-by-step search visualization (optional)
 

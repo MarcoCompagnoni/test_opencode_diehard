@@ -201,8 +201,8 @@ def auto_play_solution(
 
 
 @st.cache_data
-def cached_solve(capacities: list[int], target: int):
-    """Wrapper function to cache BFS results."""
+def solve_with_cache(capacities: list[int], target: int):
+    """Wrapper function to cache BFS results. Renamed to invalidate stale cache."""
     return bfs_solve_with_visited(capacities, target)
 
 
@@ -299,7 +299,7 @@ def main() -> None:
             return
         
         with st.spinner("Ricerca soluzione in corso..."):
-            result = cached_solve(capacities, target)
+            result = solve_with_cache(capacities, target)
         
         if result[0] is None:
             st.error(format_no_solution(target))
