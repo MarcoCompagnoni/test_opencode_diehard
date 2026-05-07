@@ -137,3 +137,89 @@ def bfs_solve(capacities: list[int], target: int) -> Optional[list[Action]]:
                 queue.append(next_state)
     
     return None  # No solution found
+
+
+def bfs_solve_with_visited(capacities: list[int], target: int) -> tuple[
+    Optional[list[Action]],
+    list[JugState],
+    list[JugState]
+]:
+    """Solve and return visited states and solution path for visualization.
+    
+    Args:
+        capacities: List of jug capacities.
+        target: Target water level to measure.
+        
+    Returns:
+        Tuple of (actions, visited_states, solution_states).
+        Returns (None, visited, []) if unsolvable.
+    """
+    initial_state: JugState = tuple([0] * len(capacities))
+    
+    if not can_solve(capacities, target):
+        return None, [initial_state], []
+    
+    initial_state: JugState = tuple([0] * len(capacities))
+    queue = deque([initial_state])
+    visited: list[JugState] = [initial_state]
+    visited_set = {initial_state}
+    parent = {initial_state: None}
+    action_map = {initial_state: None}
+    
+    while queue:
+        current = queue.popleft()
+        
+        # Check if target is reached
+        if target in current:
+            solution_path = reconstruct_path(current, parent, action_map)
+            solution_states = simulate_solution(solution_path, capacities)
+            return solution_path, visited, solution_states
+        
+        for next_state, action in get_neighbors(current, capacities):
+            if next_state not in visited_set:
+                visited_set.add(next_state)
+                visited.append(next_state)
+                parent[next_state] = current
+                action_map[next_state] = action
+                queue.append(next_state)
+    
+    return None, visited, []
+
+
+def simulate_solution(
+    actions: list[Action],
+    capacities: list[int]
+) -> list[JugState]:
+    """Simulate the solution and return all intermediate states.
+    
+    Args:
+        actions: List of actions to execute.
+        capacities: List of jug capacities.
+        
+    Returns:
+        List of states after each action, starting from initial state.
+    """
+    state: JugState = tuple([0] * len(capacities))
+    states = [state]
+    
+    for action in actions:
+        action_type = action[0]
+        current = list(state)
+        
+        if action_type == ActionType.FILL:
+            jug_index = action[1]
+            current[jug_index] = capacities[jug_index]
+        elif action_type == ActionType.EMPTY:
+            jug_index = action[1]
+            current[jug_index] = 0
+        elif action_type == ActionType.POUR:
+            from_jug = action[1]
+            to_jug = action[2]
+            transfer = min(current[from_jug], capacities[to_jug] - current[to_jug])
+            current[from_jug] -= transfer
+            current[to_jug] += transfer
+        
+        state = tuple(current)
+        states.append(state)
+    
+    return states

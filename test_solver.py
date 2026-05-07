@@ -8,8 +8,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from water_jug_solver.models import ActionType
-from water_jug_solver.solver import can_solve, bfs_solve
-from water_jug_solver.formatter import format_action, format_solution, format_no_solution, simulate_solution
+from water_jug_solver.solver import can_solve, bfs_solve, bfs_solve_with_visited, simulate_solution
+from water_jug_solver.formatter import format_action, format_solution, format_no_solution
+from water_jug_solver.tree_viz import create_bfs_tree
+from graphviz import Digraph
 from app import get_jug_height, render_jugs_row, render_action_animation, auto_play_solution
 from unittest.mock import MagicMock
 
@@ -137,6 +139,103 @@ class TestBfsSolve:
                         state[to_jug] += transfer
                         state = tuple(state)
                 assert target in state, f"Solution for {capacities}, target {target} failed"
+
+
+class TestBfsSolveWithVisited:
+    """Tests for bfs_solve_with_visited function."""
+
+    def test_returns_correct_tuple_structure_solvable(self):
+        """Test that bfs_solve_with_visited returns tuple (actions, visited_states, solution_states)."""
+        result = bfs_solve_with_visited([3, 5], 4)
+        assert isinstance(result, tuple), "Result should be a tuple"
+        assert len(result) == 3, "Result should have 3 elements"
+
+        actions, visited_states, solution_states = result
+
+        # Actions should be a list or None
+        assert isinstance(actions, list), f"Actions should be a list, got {type(actions)}"
+        assert isinstance(visited_states, list), "visited_states should be a list"
+        assert isinstance(solution_states, list), "solution_states should be a list"
+
+    def test_returns_correct_tuple_structure_unsolvable(self):
+        """Test that bfs_solve_with_visited returns (None, visited, []) for unsolvable."""
+        result = bfs_solve_with_visited([3, 6], 4)  # GCD=3, 4%3≠0
+        assert isinstance(result, tuple), "Result should be a tuple"
+        assert len(result) == 3, "Result should have 3 elements"
+
+        actions, visited_states, solution_states = result
+
+        assert actions is None, "Actions should be None for unsolvable case"
+        assert isinstance(visited_states, list), "visited_states should be a list"
+        assert solution_states == [], "solution_states should be empty list for unsolvable"
+
+    def test_visited_states_include_initial_state(self):
+        """Test that visited states always include the initial state (0, 0, ...)."""
+        result = bfs_solve_with_visited([3, 5], 4)
+        actions, visited_states, solution_states = result
+
+        initial_state = (0, 0)
+        assert initial_state in visited_states, "Initial state should be in visited_states"
+        assert visited_states[0] == initial_state, "Initial state should be first visited state"
+
+    def test_visited_states_include_initial_state_unsolvable(self):
+        """Test that visited states include initial state even for unsolvable cases."""
+        result = bfs_solve_with_visited([3, 6], 4)
+        actions, visited_states, solution_states = result
+
+        initial_state = (0, 0)
+        assert initial_state in visited_states, "Initial state should be in visited_states"
+
+    def test_solution_states_valid_for_solvable(self):
+        """Test that solution_states are valid and reach the target."""
+        result = bfs_solve_with_visited([3, 5], 4)
+        actions, visited_states, solution_states = result
+
+        assert actions is not None, "Should find a solution"
+        assert len(solution_states) > 0, "solution_states should not be empty"
+        assert solution_states[0] == (0, 0), "First state should be initial"
+        assert 4 in solution_states[-1], "Last state should contain the target"
+
+    def test_visited_states_contains_solution_states(self):
+        """Test that all solution states are included in visited states."""
+        result = bfs_solve_with_visited([3, 5], 4)
+        actions, visited_states, solution_states = result
+
+        for state in solution_states:
+            assert state in visited_states, f"Solution state {state} not in visited_states"
+
+
+class TestTreeViz:
+    """Tests for tree_viz module."""
+
+    def test_create_bfs_tree_returns_digraph(self):
+        """Test that create_bfs_tree returns a Digraph object."""
+        visited_states = [(0, 0), (3, 0), (0, 5), (3, 5), (3, 2)]
+        solution_path = [(0, 0), (3, 0), (0, 5), (3, 2)]
+        capacities = [3, 5]
+        target = 4
+
+        result = create_bfs_tree(visited_states, solution_path, capacities, target)
+
+        assert isinstance(result, Digraph), "create_bfs_tree should return a Digraph object"
+
+    def test_create_bfs_tree_with_empty_inputs(self):
+        """Test create_bfs_tree handles empty inputs gracefully."""
+        result = create_bfs_tree([], [], [3, 5], 4)
+        assert isinstance(result, Digraph), "Should return Digraph even with empty inputs"
+
+    def test_create_bfs_tree_solution_states_highlighted(self):
+        """Test that solution states are included in the graph."""
+        visited_states = [(0, 0), (3, 0), (0, 5)]
+        solution_path = [(0, 0), (3, 0)]
+        capacities = [3, 5]
+        target = 4
+
+        result = create_bfs_tree(visited_states, solution_path, capacities, target)
+
+        assert isinstance(result, Digraph), "Should return valid Digraph"
+        # The Digraph object should have the nodes added
+        assert len(result.body) > 0, "Digraph should contain nodes/edges"
 
 
 class TestFormatter:

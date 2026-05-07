@@ -11,7 +11,10 @@
 - [x] **2026-05-07** - Animated visualization added: `app.py` updated with proportional jug scaling, interactive slider for step navigation, and action animation
 - [x] **2026-05-07** - UI fixes in `app.py`: removed unnecessary down arrow emojis, aligned jugs to bottom using spacer divs, added Play button for auto-animation, show initial jugs before solving, added "Nuova Partita" button, increased animation pause to 2.0s
 - [x] **2026-05-07** - Fixed IndexError in `app.py`: added input tracking (`last_capacities`, `last_target`) in session state, reset solution when inputs change to prevent index mismatch
-- [ ] **Next Step** - Implement `tree_viz.py` for BFS tree visualization
+- [x] **2026-05-07** - BFS tree visualization implemented: `tree_viz.py` with `create_bfs_tree` function (graphviz)
+- [x] **2026-05-07** - Enhanced solver: added `bfs_solve_with_visited` and `simulate_solution` to `solver.py`
+- [x] **2026-05-07** - Tree visualization in GUI: `app.py` now displays BFS tree with 3-color scheme (gray=visited, red=solution path, blue=target)
+- [x] **2026-05-07** - Code optimization for deployment
 - [ ] Add BFS generator variant in `solver.py` for Streamlit real-time updates
 
 ## Architecture
@@ -19,47 +22,25 @@
 ```
 water_jug_solver/
 ├── models.py           # State, Action, ActionType enum
-├── solver.py           # BFS + pre-check GCD, generator for real-time
+├── solver.py           # BFS + pre-check GCD, bfs_solve_with_visited, simulate_solution
 ├── formatter.py        # Output strutturato + leggibile
-├── tree_viz.py         # Visualizzazione albero BFS (graphviz/networkx) - [PLANNED]
+├── tree_viz.py         # Visualizzazione albero BFS con graphviz (create_bfs_tree)
 ├── main.py             # CLI entry point
-└── app.py              # Streamlit GUI with animated visualization
+└── app.py              # Streamlit GUI with animated visualization + BFS tree
 ```
 
 run_gui.py              # Launcher per avviare Streamlit GUI da PyCharm
-```
 
 ### Module Responsibilities
 
 | File | Responsabilità |
 |------|----------------|
 | `models.py` | `JugState` (tupla immutabile dello stato), `ActionType` (enum: FILL, EMPTY, POUR), `Action` definition |
-| `solver.py` | BFS, pre-check GCD, gestione visited states, path reconstruction, generator per Streamlit |
+| `solver.py` | BFS, pre-check GCD, gestione visited states, path reconstruction, `bfs_solve_with_visited()` (returns visited+solution), `simulate_solution()` (intermediate states) |
 | `formatter.py` | `format_solution()` → restituisce lista azioni + descrizione testuale |
-| `tree_viz.py` | Visualizzazione albero BFS con graphviz - [PLANNED] |
+| `tree_viz.py` | `create_bfs_tree()` → Graphviz visualization with 3-color scheme (gray=visited, red=solution, blue=target) |
 | `main.py` | Parsing input CLI (`capacities: list[int]`, `target: int`), esecuzione, print output |
-| `app.py` | Streamlit GUI con input, visualizzazione animata con slider, jugs proporzionali allineati in basso, Play button per auto-animazione, jugs iniziali visibili prima del solve, reset automatico soluzione al cambio input (previene IndexError) |
-| `run_gui.py` | Launcher script per avviare app.py da PyCharm con un clic |
-```
-water_jug_solver/
-├── models.py           # State, Action, ActionType enum
-├── solver.py           # BFS + pre-check GCD, generator for real-time
-├── formatter.py        # Output strutturato + leggibile
-├── tree_viz.py         # Visualizzazione albero BFS (graphviz/networkx) - [PLANNED]
-├── main.py             # CLI entry point
-└── app.py              # Streamlit GUI with animated visualization
-```
-
-### Module Responsibilities
-
-| File | Responsabilità |
-|------|----------------|
-| `models.py` | `JugState` (tupla immutabile dello stato), `ActionType` (enum: FILL, EMPTY, POUR), `Action` definition |
-| `solver.py` | BFS, pre-check GCD, gestione visited states, path reconstruction, generator per Streamlit |
-| `formatter.py` | `format_solution()` → restituisce lista azioni + descrizione testuale |
-| `tree_viz.py` | Visualizzazione albero BFS con graphviz - [PLANNED] |
-| `main.py` | Parsing input CLI (`capacities: list[int]`, `target: int`), esecuzione, print output |
-| `app.py` | Streamlit GUI con input, visualizzazione animata con slider, jugs proporzionali allineati in basso, Play button per auto-animazione, jugs iniziali visibili prima del solve, reset automatico soluzione al cambio input (previene IndexError) |
+| `app.py` | Streamlit GUI: input, visualizzazione animata con slider, jugs proporzionali allineati in basso, Play button, BFS tree expandable visualization (graphviz) |
 | `run_gui.py` | Launcher script per avviare app.py da PyCharm con un clic |
 
 ## Mathematical Pre-check
@@ -241,8 +222,9 @@ function format_solution(path, capacities):
 │  Prima: (0, 0, 0)                  │
 │  Dopo:  (4, 0, 0)                  │
 ├─────────────────────────────────────┤
-│  BFS Tree (graphviz):               │
-│  (0,0,0) → (7,0,0) → (7,5,0)...   │
+│  🌳 Albero BFS (expandable):        │
+│  Grigio: visitati | Rosso: soluzione│
+│  Blu: target (graphviz)              │
 ├─────────────────────────────────────┤
 │  Solution:                          │
 │  1. Riempire vaso 0                 │
@@ -256,11 +238,16 @@ function format_solution(path, capacities):
 - **Interactive slider**: Navigate through solution steps with real-time jug visualization
 - **Action animation**: Color-coded animation for FILL (🔵), EMPTY (🟠), POUR (🟢) actions
 - **Step details**: Display action description, state before/after for each step
+- **BFS Tree visualization**: Expandable Graphviz tree with 3-color scheme:
+  - **Gray**: Visited states during BFS exploration
+  - **Red**: States in the solution path
+  - **Blue**: Target state highlight
 - **Complete summary**: Expandable section with all steps
+- **New Game button**: Reset and start fresh instantly
 
 ### Librerie per GUI
 - `streamlit` - framework base
-- `graphviz` - per albero BFS
+- `graphviz` - per albero BFS (integratione nativa con Streamlit)
 - `streamlit-agraph` (opzionale) per grafi interattivi
 
 ## Dipendenze (`requirements.txt`)

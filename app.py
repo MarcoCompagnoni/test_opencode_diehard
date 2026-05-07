@@ -1,12 +1,13 @@
 """Streamlit GUI for Water Jug Puzzle Solver.
 
-Provides visual interface with animated jug visualization and interactive slider.
+Provides visual interface with animated jug visualization, interactive slider, and BFS tree.
 """
 
 import streamlit as st
-from water_jug_solver.solver import bfs_solve, can_solve
-from water_jug_solver.formatter import format_solution, format_no_solution, simulate_solution
+from water_jug_solver.solver import bfs_solve, bfs_solve_with_visited, can_solve
+from water_jug_solver.formatter import format_solution, format_no_solution
 from water_jug_solver.models import ActionType
+from water_jug_solver.tree_viz import create_bfs_tree
 from typing import Optional
 
 # Page config
@@ -290,18 +291,20 @@ def main() -> None:
             return
         
         with st.spinner("Ricerca soluzione in corso..."):
-            solution = bfs_solve(capacities, target)
+            result = bfs_solve_with_visited(capacities, target)
         
-        if solution is None:
+        if result[0] is None:
             st.error(format_no_solution(target))
             return
         
+        solution, visited, solution_states = result
         structured, readable = format_solution(solution, capacities)
-        states = simulate_solution(solution, capacities)
         
         st.session_state.solution = structured
-        st.session_state.states = states
+        st.session_state.states = solution_states
         st.session_state.readable = readable
+        st.session_state.visited = visited
+        st.session_state.solution_states = solution_states
         st.session_state.current_step = 0
         
         st.success(f"✅ Soluzione trovata in {len(solution)} passi!")
@@ -311,6 +314,8 @@ def main() -> None:
         solution = st.session_state.solution
         states = st.session_state.states
         readable = st.session_state.readable
+        visited = st.session_state.get('visited', [])
+        solution_states = st.session_state.get('solution_states', [])
         
         # Controls: slider, play button, new game button
         col_play, col_slider, col_new = st.columns([1, 3, 1])
@@ -332,6 +337,8 @@ def main() -> None:
             st.session_state.solution = None
             st.session_state.states = None
             st.session_state.readable = None
+            st.session_state.visited = None
+            st.session_state.solution_states = None
             st.session_state.current_step = 0
             st.rerun()
         
@@ -362,6 +369,16 @@ def main() -> None:
                 st.markdown(f"**Azione:** {readable[step - 1]}")
                 st.markdown(f"**Prima:** {state_before}")
                 st.markdown(f"**Dopo:** {state_after}")
+        
+        # BFS Tree Visualization
+        if visited and solution_states:
+            with st.expander("🌳 Albero BFS", expanded=False):
+                st.caption("Grigio: stati esplorati | Rosso: percorso soluzione | Blu: target")
+                try:
+                    tree = create_bfs_tree(visited, solution_states, capacities, target)
+                    st.graphviz_chart(tree)
+                except Exception as e:
+                    st.warning(f"Impossibile generare l'albero: {e}")
         
         # Show all steps summary
         with st.expander("📋 Riepilogo completo"):

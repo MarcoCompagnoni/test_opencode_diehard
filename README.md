@@ -14,18 +14,25 @@ The solver includes a mathematical pre-check using the Greatest Common Divisor (
 - **BFS algorithm**: Guarantees the shortest solution path
 - **GCD pre-check**: Mathematical verification of solvability before searching
 - **Multiple output formats**: Structured actions and human-readable descriptions
+- **BFS Tree Visualization**: Graphviz-based visualization of the search tree with 3-color scheme:
+   - **Gray**: Visited states during BFS exploration
+   - **Red**: States in the solution path
+   - **Blue**: Target state highlight
 - **Animated Streamlit GUI**: Interactive web interface with:
    - **Proportional jug scaling**: Jug height dynamically adjusted based on capacity
-    - **Bottom-aligned jugs**: Jugs visually aligned to the bottom (like on a table) using spacer divs
-    - **Interactive slider**: Navigate through solution steps with real-time visualization
-    - **Play button**: Auto-play animation with 2.0s pause between steps for better visibility
-    - **New Game button**: Reset and start a new puzzle instantly
-   - **Play button**: Automatic animation of the solution with timed step progression
+   - **Bottom-aligned jugs**: Jugs visually aligned to the bottom (like on a table) using spacer divs
+   - **Interactive slider**: Navigate through solution steps with real-time visualization
+   - **Play button**: Auto-play animation with 2.0s pause between steps for better visibility
+   - **New Game button**: Reset and start a new puzzle instantly
    - **Initial jug display**: Shows empty jugs with selected capacities before solving
    - **Action animation**: Color-coded animations for FILL (🔵), EMPTY (🟠), and POUR (🟢) operations
    - **Step details**: Display action description and state transitions for each step
+   - **BFS Tree expandable view**: Interactive Graphviz tree visualization
    - **Complete solution summary**: Expandable view with all steps
    - **Input change detection**: Automatically resets solution when jug capacities or target change (prevents IndexError)
+- **Enhanced solver functions**: 
+   - `bfs_solve_with_visited()`: Returns solution path, visited states, and solution states for visualization
+   - `simulate_solution()`: Simulates and returns all intermediate states
 - **Type hints and docstrings**: Google-style docstrings with full type annotations
 
 ## Installation
@@ -83,11 +90,11 @@ test_opencode_diehard/
 ├── water_jug_solver/
 │   ├── __init__.py
 │   ├── models.py           # State, Action, ActionType enum
-│   ├── solver.py           # BFS + pre-check GCD, path reconstruction
+│   ├── solver.py           # BFS + pre-check GCD, bfs_solve_with_visited, simulate_solution
 │   ├── formatter.py        # Output formatting (structured + readable)
-│   ├── tree_viz.py         # BFS tree visualization (planned)
+│   ├── tree_viz.py         # BFS tree visualization (Graphviz, 3-color scheme)
 │   ├── main.py             # CLI entry point
-│   └── app.py              # Streamlit GUI with animated visualization
+│   └── app.py              # Streamlit GUI with animated visualization + BFS tree
 ├── run_gui.py              # Launcher for Streamlit GUI (PyCharm)
 ├── test_solver.py          # Comprehensive test suite
 ├── requirements.txt        # Project dependencies
@@ -104,8 +111,14 @@ test_opencode_diehard/
 - **solver.py**: Implements the BFS algorithm with:
   - `can_solve()`: GCD-based pre-check for solvability
   - `bfs_solve()`: Main BFS solver returning action sequence
+  - `bfs_solve_with_visited()`: Enhanced solver returning (actions, visited_states, solution_states) for visualization
+  - `simulate_solution()`: Simulates solution and returns all intermediate states
   - `get_neighbors()`: Generates all valid next states from current state
   - `reconstruct_path()`: Rebuilds action sequence from BFS tree
+
+- **tree_viz.py**: BFS tree visualization module with:
+  - `create_bfs_tree()`: Creates Graphviz Digraph with 3-color scheme (gray=visited, red=solution, blue=target)
+  - `save_tree()`: Exports tree visualization to PNG file
 
 Both modules are fully documented with Google-style docstrings and comprehensive type hints.
 
@@ -120,8 +133,8 @@ The invariant is that the total water in any reachable state is a multiple of th
 
 ## Dependencies
 
-- `streamlit` - Web GUI framework with animated visualization
-- `graphviz` - BFS tree visualization (planned)
+- `streamlit` - Web GUI framework with animated visualization and BFS tree display
+- `graphviz` - BFS tree visualization (integrated with Streamlit)
 - `pytest` - Testing framework
 
 ## License
