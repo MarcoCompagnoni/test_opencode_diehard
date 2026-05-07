@@ -8,6 +8,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from water_jug_solver.models import ActionType
 from water_jug_solver.solver import can_solve, bfs_solve
+from water_jug_solver.formatter import format_action, format_solution, format_no_solution, simulate_solution
 
 
 class TestCanSolve:
@@ -133,3 +134,73 @@ class TestBfsSolve:
                         state[to_jug] += transfer
                         state = tuple(state)
                 assert target in state, f"Solution for {capacities}, target {target} failed"
+
+
+class TestFormatter:
+    """Tests for formatter module functions."""
+
+    def test_format_action_fill(self):
+        """Test format_action for FILL action type."""
+        capacities = [3, 5]
+        action = (ActionType.FILL, 0)
+        result = format_action(action, capacities)
+        assert result == "Riempire vaso 0 (capacità: 3)"
+        action = (ActionType.FILL, 1)
+        result = format_action(action, capacities)
+        assert result == "Riempire vaso 1 (capacità: 5)"
+
+    def test_format_action_empty(self):
+        """Test format_action for EMPTY action type."""
+        capacities = [3, 5]
+        action = (ActionType.EMPTY, 0)
+        result = format_action(action, capacities)
+        assert result == "Svuotare vaso 0"
+        action = (ActionType.EMPTY, 1)
+        result = format_action(action, capacities)
+        assert result == "Svuotare vaso 1"
+
+    def test_format_action_pour(self):
+        """Test format_action for POUR action type."""
+        capacities = [3, 5]
+        action = (ActionType.POUR, 1, 0)
+        result = format_action(action, capacities)
+        assert result == "Travasare vaso 1 → vaso 0"
+        action = (ActionType.POUR, 0, 1)
+        result = format_action(action, capacities)
+        assert result == "Travasare vaso 0 → vaso 1"
+
+    def test_format_solution(self):
+        """Test format_solution returns correct structured and readable outputs."""
+        capacities = [3, 5]
+        actions = [(ActionType.FILL, 0), (ActionType.EMPTY, 0)]
+        structured, readable = format_solution(actions, capacities)
+        assert structured == actions
+        assert readable[0] == "Riempire vaso 0 (capacità: 3)"
+        assert readable[1] == "Svuotare vaso 0"
+        assert len(structured) == len(readable) == 2
+
+    def test_format_no_solution(self):
+        """Test format_no_solution returns proper error message."""
+        result = format_no_solution(4)
+        assert result == "Errore: nessuna soluzione esiste per raggiungere il target 4."
+        result = format_no_solution(10)
+        assert result == "Errore: nessuna soluzione esiste per raggiungere il target 10."
+
+    def test_simulate_solution_known_case(self):
+        """Test simulate_solution returns correct state sequence for [3,5] target 4."""
+        capacities = [3, 5]
+        target = 4
+        solution = bfs_solve(capacities, target)
+        assert solution is not None
+        expected_states = [
+            (0, 0),
+            (0, 5),
+            (3, 2),
+            (0, 2),
+            (2, 0),
+            (2, 5),
+            (3, 4)
+        ]
+        actual_states = simulate_solution(solution, capacities)
+        assert actual_states == expected_states
+        assert target in actual_states[-1]
