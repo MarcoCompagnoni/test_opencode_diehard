@@ -1,4 +1,5 @@
 .idea
+.pytest_cache
 venv
 export_project.py
 project_codebase_*.txt

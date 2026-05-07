@@ -13,8 +13,16 @@ The solver includes a mathematical pre-check using the Greatest Common Divisor (
 - **N-jug support**: Works with any number of jugs (not just 2)
 - **BFS algorithm**: Guarantees the shortest solution path
 - **GCD pre-check**: Mathematical verification of solvability before searching
-- **Multiple output formats**: Structured actions and human-readable descriptions (planned)
-- **Streamlit GUI**: Interactive web interface with real-time visualization (planned)
+- **Multiple output formats**: Structured actions and human-readable descriptions
+- **Animated Streamlit GUI**: Interactive web interface with:
+  - **Proportional jug scaling**: Jug height dynamically adjusted based on capacity
+  - **Bottom-aligned jugs**: Jugs visually aligned to the bottom (like on a table) using flexbox
+  - **Interactive slider**: Navigate through solution steps with real-time visualization
+  - **Play button**: Automatic animation of the solution with timed step progression
+  - **Initial jug display**: Shows empty jugs with selected capacities before solving
+  - **Action animation**: Color-coded animations for FILL (🔵), EMPTY (🟠), and POUR (🟢) operations
+  - **Step details**: Display action description and state transitions for each step
+  - **Complete solution summary**: Expandable view with all steps
 - **Type hints and docstrings**: Google-style docstrings with full type annotations
 
 ## Installation
@@ -25,7 +33,14 @@ pip install -r requirements.txt
 
 ## Usage
 
-### Current CLI Usage (via Python)
+### Quick Start from PyCharm
+
+To launch the Streamlit GUI directly from PyCharm:
+1. Open `run_gui.py` in PyCharm
+2. Right-click on the file and select "Run 'run_gui.py'"
+3. The Streamlit web interface will open in your browser
+
+### CLI Usage (via Python)
 
 ```python
 from water_jug_solver.solver import bfs_solve, can_solve
@@ -40,13 +55,19 @@ else:
     print("No solution exists")
 ```
 
+### CLI Entry Point (main.py)
+
+```bash
+python water_jug_solver/main.py --capacities 3 5 --target 4
+```
+
 ### Running Tests
 
 ```bash
 pytest test_solver.py -v
 ```
 
-### Future Streamlit App
+### Streamlit GUI (Alternative Launch)
 
 ```bash
 streamlit run water_jug_solver/app.py
@@ -60,10 +81,11 @@ test_opencode_diehard/
 │   ├── __init__.py
 │   ├── models.py           # State, Action, ActionType enum
 │   ├── solver.py           # BFS + pre-check GCD, path reconstruction
-│   ├── formatter.py        # Output formatting (planned)
-│   ├── visualization.py    # Jug rendering for Streamlit (planned)
+│   ├── formatter.py        # Output formatting (structured + readable)
 │   ├── tree_viz.py         # BFS tree visualization (planned)
-│   └── app.py              # Streamlit GUI (planned)
+│   ├── main.py             # CLI entry point
+│   └── app.py              # Streamlit GUI with animated visualization
+├── run_gui.py              # Launcher for Streamlit GUI (PyCharm)
 ├── test_solver.py          # Comprehensive test suite
 ├── requirements.txt        # Project dependencies
 ├── PLAN.md                 # Detailed implementation plan
@@ -95,7 +117,7 @@ The invariant is that the total water in any reachable state is a multiple of th
 
 ## Dependencies
 
-- `streamlit` - Web GUI framework (planned)
+- `streamlit` - Web GUI framework with animated visualization
 - `graphviz` - BFS tree visualization (planned)
 - `pytest` - Testing framework
 

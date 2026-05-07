@@ -4,11 +4,13 @@
 
 - [x] **2026-05-07** - Core solver implemented: `models.py` and `solver.py` with BFS algorithm, GCD pre-check, and Google-style docstrings
 - [x] **2026-05-07** - Tests implemented: `test_solver.py` with comprehensive test coverage for `can_solve` and `bfs_solve`
-- [ ] **Next Step** - Implement `formatter.py` for output formatting (structured + readable)
-- [ ] Implement `main.py` CLI entry point
-- [ ] Implement `visualization.py` for Streamlit jug rendering
-- [ ] Implement `tree_viz.py` for BFS tree visualization
-- [ ] Implement `app.py` Streamlit GUI with real-time BFS generator
+- [x] **2026-05-07** - GUI launcher added: `run_gui.py` for launching Streamlit GUI directly from PyCharm
+- [x] **2026-05-07** - Streamlit GUI implemented: `app.py` with interactive web interface
+- [x] **2026-05-07** - CLI entry point implemented: `main.py` with command-line interface
+- [x] **2026-05-07** - Output formatter implemented: `formatter.py` for structured and readable output
+- [x] **2026-05-07** - Animated visualization added: `app.py` updated with proportional jug scaling, interactive slider for step navigation, and action animation
+- [x] **2026-05-07** - UI fixes in `app.py`: removed unnecessary down arrow emojis, aligned jugs to bottom using flexbox, added Play button for auto-animation, show initial jugs before solving
+- [ ] **Next Step** - Implement `tree_viz.py` for BFS tree visualization
 - [ ] Add BFS generator variant in `solver.py` for Streamlit real-time updates
 
 ## Architecture
@@ -18,10 +20,12 @@ water_jug_solver/
 ├── models.py           # State, Action, ActionType enum
 ├── solver.py           # BFS + pre-check GCD, generator for real-time
 ├── formatter.py        # Output strutturato + leggibile
-├── visualization.py    # Funzioni per rendering jugs (streamlit)
-├── tree_viz.py         # Visualizzazione albero BFS (graphviz/networkx)
+├── tree_viz.py         # Visualizzazione albero BFS (graphviz/networkx) - [PLANNED]
 ├── main.py             # CLI entry point
-└── app.py              # Streamlit GUI
+└── app.py              # Streamlit GUI with animated visualization
+```
+
+run_gui.py              # Launcher per avviare Streamlit GUI da PyCharm
 ```
 
 ### Module Responsibilities
@@ -31,10 +35,31 @@ water_jug_solver/
 | `models.py` | `JugState` (tupla immutabile dello stato), `ActionType` (enum: FILL, EMPTY, POUR), `Action` definition |
 | `solver.py` | BFS, pre-check GCD, gestione visited states, path reconstruction, generator per Streamlit |
 | `formatter.py` | `format_solution()` → restituisce lista azioni + descrizione testuale |
-| `visualization.py` | Rendering dei vasi per Streamlit GUI |
-| `tree_viz.py` | Visualizzazione albero BFS con graphviz |
+| `tree_viz.py` | Visualizzazione albero BFS con graphviz - [PLANNED] |
 | `main.py` | Parsing input CLI (`capacities: list[int]`, `target: int`), esecuzione, print output |
-| `app.py` | Streamlit GUI con input, visualizzazione real-time, albero BFS |
+| `app.py` | Streamlit GUI con input, visualizzazione animata con slider, jugs proporzionali allineati in basso, Play button per auto-animazione, jugs iniziali visibili prima del solve |
+| `run_gui.py` | Launcher script per avviare app.py da PyCharm con un clic |
+```
+water_jug_solver/
+├── models.py           # State, Action, ActionType enum
+├── solver.py           # BFS + pre-check GCD, generator for real-time
+├── formatter.py        # Output strutturato + leggibile
+├── tree_viz.py         # Visualizzazione albero BFS (graphviz/networkx) - [PLANNED]
+├── main.py             # CLI entry point
+└── app.py              # Streamlit GUI with animated visualization
+```
+
+### Module Responsibilities
+
+| File | Responsabilità |
+|------|----------------|
+| `models.py` | `JugState` (tupla immutabile dello stato), `ActionType` (enum: FILL, EMPTY, POUR), `Action` definition |
+| `solver.py` | BFS, pre-check GCD, gestione visited states, path reconstruction, generator per Streamlit |
+| `formatter.py` | `format_solution()` → restituisce lista azioni + descrizione testuale |
+| `tree_viz.py` | Visualizzazione albero BFS con graphviz - [PLANNED] |
+| `main.py` | Parsing input CLI (`capacities: list[int]`, `target: int`), esecuzione, print output |
+| `app.py` | Streamlit GUI con input, visualizzazione animata con slider, jugs proporzionali allineati in basso, Play button per auto-animazione, jugs iniziali visibili prima del solve |
+| `run_gui.py` | Launcher script per avviare app.py da PyCharm con un clic |
 
 ## Mathematical Pre-check
 
@@ -200,13 +225,20 @@ function format_solution(path, capacities):
 │  Target: 4                          │
 │  [Solve Button]                     │
 ├─────────────────────────────────────┤
-│  Progress:                          │
-│  ● Exploring state: (0, 0, 0)      │
-│  ● Expanded: 15 states              │
+│  Visualizzazione Vasi (animated):   │
+│  ┌────┐  ┌────┐  ┌────┐           │
+│  │████│  │░░░░│  │██░░│ ← colored  │
+│  │ 4  │  │ 0  │  │ 3  │   jugs    │
+│  │ /7 │  │ /5 │  │ /8 │ (proportional│
+│  └────┘  └────┘  └────┘   height)  │
 ├─────────────────────────────────────┤
-│  Jug Visualization (real-time):     │
-│  [████░░░] Vaso 0: 4/7             │
-│  [░░░░░░░] Vaso 1: 0/5             │
+│  Slider: Naviga tra i passaggi     │
+│  ◄────●────► Step 2/5              │
+├─────────────────────────────────────┤
+│  Dettagli Azione:                   │
+│  🟢 Travaso da vaso 0 a vaso 1...  │
+│  Prima: (0, 0, 0)                  │
+│  Dopo:  (4, 0, 0)                  │
 ├─────────────────────────────────────┤
 │  BFS Tree (graphviz):               │
 │  (0,0,0) → (7,0,0) → (7,5,0)...   │
@@ -216,6 +248,14 @@ function format_solution(path, capacities):
 │  2. Travasare vaso 0 → vaso 1      │
 └─────────────────────────────────────┘
 ```
+
+### Animation Features
+
+- **Proportional jug scaling**: Jug height proportional to capacity (max jug = 300px)
+- **Interactive slider**: Navigate through solution steps with real-time jug visualization
+- **Action animation**: Color-coded animation for FILL (🔵), EMPTY (🟠), POUR (🟢) actions
+- **Step details**: Display action description, state before/after for each step
+- **Complete summary**: Expandable section with all steps
 
 ### Librerie per GUI
 - `streamlit` - framework base
