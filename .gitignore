@@ -3,3 +3,6 @@
 venv
 export_project.py
 project_codebase_*.txt
+__pycache__/
+*.pyc
+.streamlit/
