@@ -1,79 +1,75 @@
 """BFS Tree visualization for Water Jug Puzzle.
 
-Generates Graphviz visualization of BFS exploration tree.
+Generates Graphviz visualization of BFS exploration tree with parent-child relationships.
 """
 
 from typing import Optional
 from graphviz import Digraph
-
 from water_jug_solver.models import JugState
 
 
 def create_bfs_tree(
     visited_states: list[JugState],
     solution_path: list[JugState],
+    parent_map: dict[JugState, Optional[JugState]],
     capacities: list[int],
     target: int
 ) -> Digraph:
-    """Create Graphviz visualization of BFS tree.
+    """Create a real BFS tree visualization with parent-child links.
     
     Args:
         visited_states: All states visited during BFS.
         solution_path: States in the solution path.
+        parent_map: Map of state to its parent state.
         capacities: Jug capacities.
         target: Target water level.
         
     Returns:
-        Graphviz Digraph object with 3-color scheme:
-        - Gray: visited states not in solution
-        - Red: states in the solution path
-        - Blue: target state (contains target amount)
+        Graphviz Digraph object.
     """
-    dot = Digraph(comment='BFS Tree')
-    dot.attr(rankdir='TB', splines='ortho')
-    dot.attr('node', shape='circle', style='filled', fontname='Arial')
-    dot.attr('edge', fontname='Arial', fontsize='10')
+    # Limit visualization if tree is too large to prevent "merda atomica"
+    MAX_NODES = 100
+    if len(visited_states) > MAX_NODES:
+        visited_states = visited_states[:MAX_NODES]
+        # Ensure solution nodes are included even if beyond limit
+        for state in solution_path:
+            if state not in visited_states:
+                visited_states.append(state)
+
+    dot = Digraph(comment='BFS Search Tree')
     
-    # Convert solution path to set for quick lookup
+    # improved layout settings
+    dot.attr(rankdir='TB', size='10,10', ratio='fill')
+    dot.attr('node', shape='box', style='filled,rounded', fontname='Helvetica', fontsize='10')
+    dot.attr('edge', arrowhead='vee', arrowsize='0.7', color='#cccccc')
+    
     solution_set = set(solution_path)
     
-    # Find target state (last state in solution that contains target)
-    target_state = None
-    for state in reversed(solution_path):
-        if target in state:
-            target_state = state
-            break
-    
-    # Color mapping
     for state in visited_states:
         state_str = str(state)
-        label = '\n'.join([f'J{i}: {state[i]}' for i in range(len(state))])
+        # Compact label: (0,3,5)
+        label = f"{state}"
         
-        if state == target_state:
-            # Target state - blue
-            dot.node(state_str, label=label, fillcolor='#1f77b4', fontcolor='white')
-        elif state in solution_set:
-            # Solution path (non-target) - red
-            dot.node(state_str, label=label, fillcolor='#d62728', fontcolor='white')
+        # Color nodes based on role
+        if state in solution_set:
+            fill = '#1f77b4' # Blue
+            font = 'white'
         else:
-            # Visited but not in solution - gray
-            dot.node(state_str, label=label, fillcolor='#7f7f7f', fontcolor='white')
-    
-    # Add edges (solution edges in red, or blue for target edge)
-    for i in range(len(solution_path) - 1):
-        edge_color = '#d62728'  # Red for solution path
-        if solution_path[i + 1] == target_state:
-            edge_color = '#1f77b4'  # Blue for edge leading to target
-        dot.edge(str(solution_path[i]), str(solution_path[i + 1]), color=edge_color, penwidth='2')
+            fill = '#ffcccc' # Light Red (traversed)
+            font = 'black'
+            
+        # Highlight initial state
+        if all(s == 0 for state_val in state for s in [state_val]): # Simplified check for (0,0,...)
+             if sum(state) == 0:
+                dot.attr('node', penwidth='3')
+             
+        dot.node(state_str, label=label, fillcolor=fill, fontcolor=font, color=fill)
+
+    # Add ALL edges from parent map
+    for child, parent in parent_map.items():
+        if child in visited_states and parent in visited_states:
+            color = '#1f77b4' if (child in solution_set and parent in solution_set) else '#cccccc'
+            width = '2.0' if (child in solution_set and parent in solution_set) else '1.0'
+            dot.edge(str(parent), str(child), color=color, penwidth=width)
     
     return dot
-
-
-def save_tree(tree: Digraph, output_path: str = 'bfs_tree') -> None:
-    """Save tree visualization to file.
-    
-    Args:
-        tree: Graphviz Digraph object.
-        output_path: Path to save the output (without extension).
-    """
-    tree.render(output_path, format='png', cleanup=True)

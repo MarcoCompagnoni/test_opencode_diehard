@@ -200,6 +200,12 @@ def auto_play_solution(
     st.balloons()
 
 
+@st.cache_data
+def cached_solve(capacities: list[int], target: int):
+    """Wrapper function to cache BFS results."""
+    return bfs_solve_with_visited(capacities, target)
+
+
 def main() -> None:
     """Main Streamlit app."""
     st.title("🧪 Water Jug Puzzle Solver")
@@ -249,6 +255,7 @@ def main() -> None:
         st.session_state.auto_play = False
         st.session_state.last_capacities = None
         st.session_state.last_target = None
+        st.session_state.parent_map = None
     
     # Check if inputs changed, reset solution if needed
     inputs_changed = (
@@ -260,6 +267,7 @@ def main() -> None:
         st.session_state.states = None
         st.session_state.readable = None
         st.session_state.current_step = 0
+        st.session_state.parent_map = None
     
     # Update tracked inputs
     st.session_state.last_capacities = capacities.copy()
@@ -291,13 +299,13 @@ def main() -> None:
             return
         
         with st.spinner("Ricerca soluzione in corso..."):
-            result = bfs_solve_with_visited(capacities, target)
+            result = cached_solve(capacities, target)
         
         if result[0] is None:
             st.error(format_no_solution(target))
             return
         
-        solution, visited, solution_states = result
+        solution, visited, solution_states, parent_map = result
         structured, readable = format_solution(solution, capacities)
         
         st.session_state.solution = structured
@@ -305,6 +313,7 @@ def main() -> None:
         st.session_state.readable = readable
         st.session_state.visited = visited
         st.session_state.solution_states = solution_states
+        st.session_state.parent_map = parent_map
         st.session_state.current_step = 0
         
         st.success(f"✅ Soluzione trovata in {len(solution)} passi!")
@@ -316,6 +325,7 @@ def main() -> None:
         readable = st.session_state.readable
         visited = st.session_state.get('visited', [])
         solution_states = st.session_state.get('solution_states', [])
+        parent_map = st.session_state.get('parent_map', {})
         
         # Controls: slider, play button, new game button
         col_play, col_slider, col_new = st.columns([1, 3, 1])
@@ -339,6 +349,7 @@ def main() -> None:
             st.session_state.readable = None
             st.session_state.visited = None
             st.session_state.solution_states = None
+            st.session_state.parent_map = None
             st.session_state.current_step = 0
             st.rerun()
         
@@ -371,11 +382,11 @@ def main() -> None:
                 st.markdown(f"**Dopo:** {state_after}")
         
         # BFS Tree Visualization
-        if visited and solution_states:
+        if visited and solution_states and parent_map:
             with st.expander("🌳 Albero BFS", expanded=False):
-                st.caption("Grigio: stati esplorati | Rosso: percorso soluzione | Blu: target")
+                st.caption("Rosso: stati esplorati | Blu: percorso soluzione")
                 try:
-                    tree = create_bfs_tree(visited, solution_states, capacities, target)
+                    tree = create_bfs_tree(visited, solution_states, parent_map, capacities, target)
                     st.graphviz_chart(tree)
                 except Exception as e:
                     st.warning(f"Impossibile generare l'albero: {e}")

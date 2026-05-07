@@ -14,10 +14,10 @@ The solver includes a mathematical pre-check using the Greatest Common Divisor (
 - **BFS algorithm**: Guarantees the shortest solution path
 - **GCD pre-check**: Mathematical verification of solvability before searching
 - **Multiple output formats**: Structured actions and human-readable descriptions
-- **BFS Tree Visualization**: Graphviz-based visualization of the search tree with 3-color scheme:
-   - **Gray**: Visited states during BFS exploration
-   - **Red**: States in the solution path
-   - **Blue**: Target state highlight
+- **BFS Tree Visualization**: Real parent-child hierarchy visualization using Graphviz with 2-color scheme:
+   - **Light Red**: States visited during BFS exploration
+   - **Blue**: States in the solution path (highlighted with thicker edges)
+- **Deployment Optimization**: Uses Streamlit caching (`@st.cache_data`) for high-performance result retrieval and smooth UI experience
 - **Animated Streamlit GUI**: Interactive web interface with:
    - **Proportional jug scaling**: Jug height dynamically adjusted based on capacity
    - **Bottom-aligned jugs**: Jugs visually aligned to the bottom (like on a table) using spacer divs
@@ -27,8 +27,9 @@ The solver includes a mathematical pre-check using the Greatest Common Divisor (
    - **Initial jug display**: Shows empty jugs with selected capacities before solving
    - **Action animation**: Color-coded animations for FILL (🔵), EMPTY (🟠), and POUR (🟢) operations
    - **Step details**: Display action description and state transitions for each step
-   - **BFS Tree expandable view**: Interactive Graphviz tree visualization
-   - **Complete solution summary**: Expandable view with all steps
+- **BFS Tree expandable view**: Interactive Graphviz tree visualization showing the actual search hierarchy
+   - **Optimization**: Automatic node limiting (max 100 nodes) to maintain readability on large search spaces
+- **Complete solution summary**: Expandable view with all steps
    - **Input change detection**: Automatically resets solution when jug capacities or target change (prevents IndexError)
 - **Enhanced solver functions**: 
    - `bfs_solve_with_visited()`: Returns solution path, visited states, and solution states for visualization
@@ -117,8 +118,8 @@ test_opencode_diehard/
   - `reconstruct_path()`: Rebuilds action sequence from BFS tree
 
 - **tree_viz.py**: BFS tree visualization module with:
-  - `create_bfs_tree()`: Creates Graphviz Digraph with 3-color scheme (gray=visited, red=solution, blue=target)
-  - `save_tree()`: Exports tree visualization to PNG file
+  - `create_bfs_tree()`: Creates Graphviz Digraph with real parent-child relationships and 2-color scheme (light red=visited, blue=solution)
+  - Automatic complexity management: ensures solution path is always visible while limiting total nodes for performance.
 
 Both modules are fully documented with Google-style docstrings and comprehensive type hints.
 

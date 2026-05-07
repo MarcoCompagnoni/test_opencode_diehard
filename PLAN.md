@@ -11,11 +11,12 @@
 - [x] **2026-05-07** - Animated visualization added: `app.py` updated with proportional jug scaling, interactive slider for step navigation, and action animation
 - [x] **2026-05-07** - UI fixes in `app.py`: removed unnecessary down arrow emojis, aligned jugs to bottom using spacer divs, added Play button for auto-animation, show initial jugs before solving, added "Nuova Partita" button, increased animation pause to 2.0s
 - [x] **2026-05-07** - Fixed IndexError in `app.py`: added input tracking (`last_capacities`, `last_target`) in session state, reset solution when inputs change to prevent index mismatch
-- [x] **2026-05-07** - BFS tree visualization implemented: `tree_viz.py` with `create_bfs_tree` function (graphviz)
+- [x] **2026-05-07** - BFS tree visualization implemented: `tree_viz.py` with `create_bfs_tree` function (graphviz) - now featuring real parent-child relationships
 - [x] **2026-05-07** - Enhanced solver: added `bfs_solve_with_visited` and `simulate_solution` to `solver.py`
-- [x] **2026-05-07** - Tree visualization in GUI: `app.py` now displays BFS tree with 3-color scheme (gray=visited, red=solution path, blue=target)
+- [x] **2026-05-07** - Tree visualization in GUI: `app.py` now displays real BFS tree with 2-color scheme (light red=visited, blue=solution path)
+- [x] **2026-05-07** - Performance optimization: added Streamlit caching (`@st.cache_data`) for BFS results
 - [x] **2026-05-07** - Code optimization for deployment
-- [ ] Add BFS generator variant in `solver.py` for Streamlit real-time updates
+- [ ] Add BFS generator variant in `solver.py` for real-time step-by-step search visualization (optional)
 
 ## Architecture
 
@@ -38,9 +39,9 @@ run_gui.py              # Launcher per avviare Streamlit GUI da PyCharm
 | `models.py` | `JugState` (tupla immutabile dello stato), `ActionType` (enum: FILL, EMPTY, POUR), `Action` definition |
 | `solver.py` | BFS, pre-check GCD, gestione visited states, path reconstruction, `bfs_solve_with_visited()` (returns visited+solution), `simulate_solution()` (intermediate states) |
 | `formatter.py` | `format_solution()` → restituisce lista azioni + descrizione testuale |
-| `tree_viz.py` | `create_bfs_tree()` → Graphviz visualization with 3-color scheme (gray=visited, red=solution, blue=target) |
+| `tree_viz.py` | `create_bfs_tree()` → Graphviz visualization with real parent-child hierarchy and 2-color scheme (light red=visited, blue=solution) |
 | `main.py` | Parsing input CLI (`capacities: list[int]`, `target: int`), esecuzione, print output |
-| `app.py` | Streamlit GUI: input, visualizzazione animata con slider, jugs proporzionali allineati in basso, Play button, BFS tree expandable visualization (graphviz) |
+| `app.py` | Streamlit GUI: input, visualizzazione animata, caching `@st.cache_data`, real BFS tree hierarchy (graphviz) |
 | `run_gui.py` | Launcher script per avviare app.py da PyCharm con un clic |
 
 ## Mathematical Pre-check
@@ -238,10 +239,10 @@ function format_solution(path, capacities):
 - **Interactive slider**: Navigate through solution steps with real-time jug visualization
 - **Action animation**: Color-coded animation for FILL (🔵), EMPTY (🟠), POUR (🟢) actions
 - **Step details**: Display action description, state before/after for each step
-- **BFS Tree visualization**: Expandable Graphviz tree with 3-color scheme:
-  - **Gray**: Visited states during BFS exploration
-  - **Red**: States in the solution path
-  - **Blue**: Target state highlight
+- **BFS Tree visualization**: Expandable Graphviz tree with real parent-child links and 2-color scheme:
+  - **Light Red**: States visited during BFS exploration
+  - **Blue**: States in the solution path (with thicker blue edges)
+- **Performance**: Streamlit caching (`@st.cache_data`) for instant result retrieval on re-runs
 - **Complete summary**: Expandable section with all steps
 - **New Game button**: Reset and start fresh instantly
 

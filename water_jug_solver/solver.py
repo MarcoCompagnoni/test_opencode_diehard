@@ -142,28 +142,28 @@ def bfs_solve(capacities: list[int], target: int) -> Optional[list[Action]]:
 def bfs_solve_with_visited(capacities: list[int], target: int) -> tuple[
     Optional[list[Action]],
     list[JugState],
-    list[JugState]
+    list[JugState],
+    dict[JugState, Optional[JugState]]
 ]:
-    """Solve and return visited states and solution path for visualization.
+    """Solve and return visited states, solution path, and parent map.
     
     Args:
         capacities: List of jug capacities.
         target: Target water level to measure.
         
     Returns:
-        Tuple of (actions, visited_states, solution_states).
-        Returns (None, visited, []) if unsolvable.
+        Tuple of (actions, visited_states, solution_states, parent_map).
+        Returns (None, visited, [], parents) if unsolvable.
     """
     initial_state: JugState = tuple([0] * len(capacities))
     
     if not can_solve(capacities, target):
-        return None, [initial_state], []
+        return None, [initial_state], [], {initial_state: None}
     
-    initial_state: JugState = tuple([0] * len(capacities))
     queue = deque([initial_state])
     visited: list[JugState] = [initial_state]
     visited_set = {initial_state}
-    parent = {initial_state: None}
+    parent: dict[JugState, Optional[JugState]] = {initial_state: None}
     action_map = {initial_state: None}
     
     while queue:
@@ -173,7 +173,7 @@ def bfs_solve_with_visited(capacities: list[int], target: int) -> tuple[
         if target in current:
             solution_path = reconstruct_path(current, parent, action_map)
             solution_states = simulate_solution(solution_path, capacities)
-            return solution_path, visited, solution_states
+            return solution_path, visited, solution_states, parent
         
         for next_state, action in get_neighbors(current, capacities):
             if next_state not in visited_set:
@@ -183,7 +183,7 @@ def bfs_solve_with_visited(capacities: list[int], target: int) -> tuple[
                 action_map[next_state] = action
                 queue.append(next_state)
     
-    return None, visited, []
+    return None, visited, [], parent
 
 
 def simulate_solution(
