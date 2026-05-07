@@ -246,6 +246,23 @@ def main() -> None:
         st.session_state.readable = None
         st.session_state.current_step = 0
         st.session_state.auto_play = False
+        st.session_state.last_capacities = None
+        st.session_state.last_target = None
+    
+    # Check if inputs changed, reset solution if needed
+    inputs_changed = (
+        st.session_state.last_capacities != capacities or
+        st.session_state.last_target != target
+    )
+    if inputs_changed and st.session_state.solution is not None:
+        st.session_state.solution = None
+        st.session_state.states = None
+        st.session_state.readable = None
+        st.session_state.current_step = 0
+    
+    # Update tracked inputs
+    st.session_state.last_capacities = capacities.copy()
+    st.session_state.last_target = target
     
     # Main content area
     col1, col2 = st.columns([2, 1])

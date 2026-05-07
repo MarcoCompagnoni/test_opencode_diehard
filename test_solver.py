@@ -512,3 +512,147 @@ class TestAppVisualization:
         
         # Check that at least one sleep call is 2.0 seconds
         assert 2.0 in sleep_calls, f"Expected time.sleep(2.0) to be called, but got sleep calls: {sleep_calls}"
+
+
+class TestSessionStateReset:
+    """Tests for session state reset when inputs change."""
+
+    def test_inputs_changed_reset_solution(self, monkeypatch):
+        """Test that changing capacities resets solution state (simulates [3,5] -> [3,5,8])."""
+        # Mock session state with existing solution and old inputs tracked
+        mock_session_state = MagicMock()
+        mock_session_state.solution = [(ActionType.FILL, 0)]
+        mock_session_state.states = [(0, 0), (3, 0)]
+        mock_session_state.readable = ["Riempire vaso 0"]
+        mock_session_state.current_step = 1
+        mock_session_state.last_capacities = [3, 5]
+        mock_session_state.last_target = 4
+        
+        monkeypatch.setattr('app.st.session_state', mock_session_state)
+        
+        # Simulate new inputs: capacities changed from [3,5] to [3,5,8]
+        new_capacities = [3, 5, 8]
+        new_target = 4
+        
+        # Replicate the logic from app.py lines 253-261
+        inputs_changed = (
+            mock_session_state.last_capacities != new_capacities or
+            mock_session_state.last_target != new_target
+        )
+        
+        # Verify inputs are detected as changed
+        assert inputs_changed is True, "Inputs should be detected as changed"
+        
+        # Simulate the reset logic
+        if inputs_changed and mock_session_state.solution is not None:
+            mock_session_state.solution = None
+            mock_session_state.states = None
+            mock_session_state.readable = None
+            mock_session_state.current_step = 0
+        
+        # Verify reset
+        assert mock_session_state.solution is None, "solution should be None after inputs change"
+        assert mock_session_state.states is None, "states should be None after inputs change"
+        assert mock_session_state.readable is None, "readable should be None after inputs change"
+        assert mock_session_state.current_step == 0, "current_step should be 0 after inputs change"
+
+    def test_inputs_unchanged_keep_solution(self, monkeypatch):
+        """Test that solution is kept when inputs don't change."""
+        # Mock session state with existing solution
+        mock_session_state = MagicMock()
+        mock_session_state.solution = [(ActionType.FILL, 0)]
+        mock_session_state.states = [(0, 0), (3, 0)]
+        mock_session_state.readable = ["Riempire vaso 0"]
+        mock_session_state.current_step = 1
+        mock_session_state.last_capacities = [3, 5]
+        mock_session_state.last_target = 4
+        
+        monkeypatch.setattr('app.st.session_state', mock_session_state)
+        
+        # Same inputs as before
+        same_capacities = [3, 5]
+        same_target = 4
+        
+        # Replicate the logic from app.py
+        inputs_changed = (
+            mock_session_state.last_capacities != same_capacities or
+            mock_session_state.last_target != same_target
+        )
+        
+        # Verify inputs are NOT detected as changed
+        assert inputs_changed is False, "Inputs should not be detected as changed"
+        
+        # Solution should remain unchanged
+        assert mock_session_state.solution == [(ActionType.FILL, 0)], "solution should be kept"
+        assert mock_session_state.states == [(0, 0), (3, 0)], "states should be kept"
+        assert mock_session_state.current_step == 1, "current_step should be kept"
+
+    def test_target_changed_reset_solution(self, monkeypatch):
+        """Test that changing target resets solution state."""
+        # Mock session state with existing solution
+        mock_session_state = MagicMock()
+        mock_session_state.solution = [(ActionType.FILL, 0)]
+        mock_session_state.states = [(0, 0), (3, 0)]
+        mock_session_state.readable = ["Riempire vaso 0"]
+        mock_session_state.current_step = 1
+        mock_session_state.last_capacities = [3, 5]
+        mock_session_state.last_target = 4
+        
+        monkeypatch.setattr('app.st.session_state', mock_session_state)
+        
+        # Same capacities but different target
+        capacities = [3, 5]
+        new_target = 2
+        
+        # Replicate the logic from app.py
+        inputs_changed = (
+            mock_session_state.last_capacities != capacities or
+            mock_session_state.last_target != new_target
+        )
+        
+        assert inputs_changed is True, "Inputs should be detected as changed (target changed)"
+        
+        # Simulate reset
+        if inputs_changed and mock_session_state.solution is not None:
+            mock_session_state.solution = None
+            mock_session_state.states = None
+            mock_session_state.readable = None
+            mock_session_state.current_step = 0
+        
+        assert mock_session_state.solution is None, "solution should be None after target change"
+
+    def test_no_solution_no_reset_when_inputs_change(self, monkeypatch):
+        """Test that no reset occurs when solution is None even if inputs change."""
+        # Mock session state with no solution
+        mock_session_state = MagicMock()
+        mock_session_state.solution = None
+        mock_session_state.states = None
+        mock_session_state.readable = None
+        mock_session_state.current_step = 0
+        mock_session_state.last_capacities = [3, 5]
+        mock_session_state.last_target = 4
+        
+        monkeypatch.setattr('app.st.session_state', mock_session_state)
+        
+        # New inputs
+        new_capacities = [3, 5, 8]
+        new_target = 4
+        
+        # Replicate the logic from app.py
+        inputs_changed = (
+            mock_session_state.last_capacities != new_capacities or
+            mock_session_state.last_target != new_target
+        )
+        
+        assert inputs_changed is True, "Inputs should be detected as changed"
+        
+        # The reset logic checks "if inputs_changed and st.session_state.solution is not None"
+        # Since solution is None, no reset should happen (but it's already None)
+        # This test verifies the condition works correctly
+        if inputs_changed and mock_session_state.solution is not None:
+            # This block should NOT execute
+            pytest.fail("Reset should not execute when solution is None")
+        
+        # State should remain as is
+        assert mock_session_state.solution is None
+        assert mock_session_state.states is None

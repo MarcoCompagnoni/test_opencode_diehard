@@ -10,6 +10,7 @@
 - [x] **2026-05-07** - Output formatter implemented: `formatter.py` for structured and readable output
 - [x] **2026-05-07** - Animated visualization added: `app.py` updated with proportional jug scaling, interactive slider for step navigation, and action animation
 - [x] **2026-05-07** - UI fixes in `app.py`: removed unnecessary down arrow emojis, aligned jugs to bottom using spacer divs, added Play button for auto-animation, show initial jugs before solving, added "Nuova Partita" button, increased animation pause to 2.0s
+- [x] **2026-05-07** - Fixed IndexError in `app.py`: added input tracking (`last_capacities`, `last_target`) in session state, reset solution when inputs change to prevent index mismatch
 - [ ] **Next Step** - Implement `tree_viz.py` for BFS tree visualization
 - [ ] Add BFS generator variant in `solver.py` for Streamlit real-time updates
 
@@ -37,7 +38,7 @@ run_gui.py              # Launcher per avviare Streamlit GUI da PyCharm
 | `formatter.py` | `format_solution()` → restituisce lista azioni + descrizione testuale |
 | `tree_viz.py` | Visualizzazione albero BFS con graphviz - [PLANNED] |
 | `main.py` | Parsing input CLI (`capacities: list[int]`, `target: int`), esecuzione, print output |
-| `app.py` | Streamlit GUI con input, visualizzazione animata con slider, jugs proporzionali allineati in basso, Play button per auto-animazione, jugs iniziali visibili prima del solve |
+| `app.py` | Streamlit GUI con input, visualizzazione animata con slider, jugs proporzionali allineati in basso, Play button per auto-animazione, jugs iniziali visibili prima del solve, reset automatico soluzione al cambio input (previene IndexError) |
 | `run_gui.py` | Launcher script per avviare app.py da PyCharm con un clic |
 ```
 water_jug_solver/
@@ -58,7 +59,7 @@ water_jug_solver/
 | `formatter.py` | `format_solution()` → restituisce lista azioni + descrizione testuale |
 | `tree_viz.py` | Visualizzazione albero BFS con graphviz - [PLANNED] |
 | `main.py` | Parsing input CLI (`capacities: list[int]`, `target: int`), esecuzione, print output |
-| `app.py` | Streamlit GUI con input, visualizzazione animata con slider, jugs proporzionali allineati in basso, Play button per auto-animazione, jugs iniziali visibili prima del solve |
+| `app.py` | Streamlit GUI con input, visualizzazione animata con slider, jugs proporzionali allineati in basso, Play button per auto-animazione, jugs iniziali visibili prima del solve, reset automatico soluzione al cambio input (previene IndexError) |
 | `run_gui.py` | Launcher script per avviare app.py da PyCharm con un clic |
 
 ## Mathematical Pre-check
