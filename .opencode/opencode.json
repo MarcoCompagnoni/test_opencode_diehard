@@ -1,0 +1,6 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    "Regole operative per questo progetto:\n1. Delega Automatica: Ogni volta che scrivi logica Python, chiama autonomamente il subagente @tester per validare il codice.\n2. Streamlit: Quando sviluppi la GUI, mantieni i file logici separati dai file di interfaccia. Non sporcare solver.py con codice Streamlit.\n3. Skill: Applica sempre le regole della skill 'python-docs' per type-hints e docstring."
+    ]
+}
