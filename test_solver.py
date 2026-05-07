@@ -10,6 +10,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 from water_jug_solver.models import ActionType
 from water_jug_solver.solver import can_solve, bfs_solve
 from water_jug_solver.formatter import format_action, format_solution, format_no_solution, simulate_solution
+from app import get_jug_height, render_jugs_row, render_action_animation
+from unittest.mock import MagicMock
 
 
 class TestCanSolve:
@@ -230,3 +232,104 @@ class TestRunGUI:
         assert "from pathlib import Path" in content, "pathlib.Path not imported in run_gui.py"
         # Check app_path assignment uses Path(__file__).parent / "app.py"
         assert 'app_path = Path(__file__).parent / "app.py"' in content, "app_path not constructed correctly with pathlib"
+
+
+class TestAppVisualization:
+    """Tests for app.py visualization functions."""
+
+    def test_get_jug_height_proportional(self):
+        """Test get_jug_height returns proportional height."""
+        # MAX_HEIGHT is 300 (defined in app.py)
+        assert get_jug_height(10, 20) == 150  # (10/20)*300 = 150
+        assert get_jug_height(5, 10) == 150   # (5/10)*300 = 150
+        assert get_jug_height(20, 20) == 300  # (20/20)*300 = 300
+        assert get_jug_height(0, 10) == 0     # (0/10)*300 = 0
+
+    def test_get_jug_height_max_zero_default(self):
+        """Test get_jug_height returns 100 when max_capacity is 0."""
+        assert get_jug_height(5, 0) == 100
+        assert get_jug_height(0, 0) == 100
+        assert get_jug_height(100, 0) == 100
+
+    def test_render_jugs_row_no_errors(self, monkeypatch):
+        """Test render_jugs_row does not raise errors with valid inputs."""
+        # Mock streamlit module in app
+        mock_st = MagicMock()
+        # Mock st.columns to return list of mock columns that support context managers
+        mock_cols = [MagicMock() for _ in range(2)]
+        for col in mock_cols:
+            col.__enter__ = MagicMock(return_value=col)
+            col.__exit__ = MagicMock(return_value=False)
+        mock_st.columns.return_value = mock_cols
+        mock_st.markdown = MagicMock()
+        monkeypatch.setattr('app.st', mock_st)
+
+        state = (1, 4)
+        capacities = [3, 5]
+        try:
+            render_jugs_row(state, capacities)
+        except Exception as e:
+            pytest.fail(f"render_jugs_row raised unexpected error: {e}")
+
+    def test_render_action_animation_fill(self, monkeypatch):
+        """Test render_action_animation handles FILL action."""
+        mock_st = MagicMock()
+        mock_cols = [MagicMock() for _ in range(2)]
+        for col in mock_cols:
+            col.__enter__ = MagicMock(return_value=col)
+            col.__exit__ = MagicMock(return_value=False)
+        mock_st.columns.return_value = mock_cols
+        mock_st.markdown = MagicMock()
+        mock_st.info = MagicMock()
+        monkeypatch.setattr('app.st', mock_st)
+
+        action = (ActionType.FILL, 0)
+        state_before = (0, 0)
+        state_after = (3, 0)
+        capacities = [3, 5]
+        try:
+            render_action_animation(action, state_before, state_after, capacities)
+        except Exception as e:
+            pytest.fail(f"render_action_animation FILL raised error: {e}")
+
+    def test_render_action_animation_empty(self, monkeypatch):
+        """Test render_action_animation handles EMPTY action."""
+        mock_st = MagicMock()
+        mock_cols = [MagicMock() for _ in range(2)]
+        for col in mock_cols:
+            col.__enter__ = MagicMock(return_value=col)
+            col.__exit__ = MagicMock(return_value=False)
+        mock_st.columns.return_value = mock_cols
+        mock_st.markdown = MagicMock()
+        mock_st.info = MagicMock()
+        monkeypatch.setattr('app.st', mock_st)
+
+        action = (ActionType.EMPTY, 1)
+        state_before = (2, 5)
+        state_after = (2, 0)
+        capacities = [3, 5]
+        try:
+            render_action_animation(action, state_before, state_after, capacities)
+        except Exception as e:
+            pytest.fail(f"render_action_animation EMPTY raised error: {e}")
+
+    def test_render_action_animation_pour(self, monkeypatch):
+        """Test render_action_animation handles POUR action."""
+        mock_st = MagicMock()
+        mock_cols = [MagicMock() for _ in range(2)]
+        for col in mock_cols:
+            col.__enter__ = MagicMock(return_value=col)
+            col.__exit__ = MagicMock(return_value=False)
+        mock_st.columns.return_value = mock_cols
+        mock_st.markdown = MagicMock()
+        mock_st.info = MagicMock()
+        monkeypatch.setattr('app.st', mock_st)
+
+        action = (ActionType.POUR, 0, 1)
+        state_before = (3, 2)
+        state_after = (0, 5)
+        capacities = [3, 5]
+        try:
+            render_action_animation(action, state_before, state_after, capacities)
+        except Exception as e:
+            pytest.fail(f"render_action_animation POUR raised error: {e}")

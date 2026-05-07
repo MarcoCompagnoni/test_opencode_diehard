@@ -1,16 +1,13 @@
 """Streamlit GUI for Water Jug Puzzle Solver.
 
-Provides visual interface with jug visualization and solution display.
+Provides visual interface with animated jug visualization and interactive slider.
 """
 
 from typing import Optional
 import streamlit as st
-import time
-
 from water_jug_solver.solver import bfs_solve, can_solve
 from water_jug_solver.formatter import format_solution, format_no_solution, simulate_solution
 from water_jug_solver.models import ActionType
-
 
 # Page config
 st.set_page_config(
@@ -19,18 +16,43 @@ st.set_page_config(
     layout="wide"
 )
 
+# Constants
+MAX_HEIGHT = 300
+JUG_WIDTH = 100
+COLORS = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"]
 
-def render_jug(level: int, capacity: int, jug_name: str, color: str = "#1f77b4") -> None:
-    """Render a single jug visualization.
+
+def get_jug_height(capacity: int, max_capacity: int) -> int:
+    """Calculate jug height proportional to its capacity.
     
     Args:
-        level: Current water level in the jug.
-        capacity: Maximum capacity of the jug.
-        jug_name: Name/label for the jug.
-        color: Color for the water fill.
+        capacity: Capacity of the jug.
+        max_capacity: Maximum capacity among all jugs.
+        
+    Returns:
+        Height in pixels proportional to capacity.
     """
-    height = 200
-    width = 80
+    if max_capacity == 0:
+        return 100
+    return int((capacity / max_capacity) * MAX_HEIGHT)
+
+
+def render_jug(
+    level: int,
+    capacity: int,
+    jug_name: str,
+    color: str,
+    height: int
+) -> None:
+    """Render a single jug with proportional height.
+    
+    Args:
+        level: Current water level.
+        capacity: Maximum capacity.
+        jug_name: Label for the jug.
+        color: Water color.
+        height: Jug height in pixels.
+    """
     fill_height = int((level / capacity) * height) if capacity > 0 else 0
     
     st.markdown(
@@ -38,10 +60,10 @@ def render_jug(level: int, capacity: int, jug_name: str, color: str = "#1f77b4")
         <div style="text-align: center;">
             <div style="
                 position: relative;
-                width: {width}px;
+                width: {JUG_WIDTH}px;
                 height: {height}px;
                 border: 3px solid #333;
-                border-radius: 0 0 10px 10px;
+                border-radius: 0 0 15px 15px;
                 margin: 0 auto;
                 background: #f8f9fa;
                 overflow: hidden;
@@ -52,30 +74,75 @@ def render_jug(level: int, capacity: int, jug_name: str, color: str = "#1f77b4")
                     width: 100%;
                     height: {fill_height}px;
                     background: {color};
-                    transition: height 0.3s ease;
+                    transition: height 0.5s ease;
                 "></div>
             </div>
             <p style="margin-top: 10px; font-weight: bold;">{jug_name}</p>
-            <p style="color: #666;">{level} / {capacity}</p>
+            <p style="color: #666; font-size: 14px;">{level} / {capacity}</p>
         </div>
         """,
         unsafe_allow_html=True
     )
 
 
-def render_jugs_row(state: tuple[int, ...], capacities: list[int]) -> None:
-    """Render all jugs in a row.
+def render_jugs_row(
+    state: tuple[int, ...],
+    capacities: list[int],
+    highlight_jugs: Optional[list[int]] = None
+) -> None:
+    """Render all jugs with proportional heights.
     
     Args:
-        state: Current water levels for all jugs.
-        capacities: Maximum capacities for all jugs.
+        state: Current water levels.
+        capacities: Maximum capacities.
+        highlight_jugs: List of jug indices to highlight.
     """
-    colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"]
+    max_capacity = max(capacities) if capacities else 1
+    num_jugs = len(capacities)
     
-    cols = st.columns(len(capacities))
-    for i, (level, capacity) in enumerate(zip(state, capacities)):
+    cols = st.columns(num_jugs)
+    for i in range(num_jugs):
         with cols[i]:
-            render_jug(level, capacity, f"Vaso {i}", colors[i % len(colors)])
+            color = COLORS[i % len(COLORS)]
+            height = get_jug_height(capacities[i], max_capacity)
+            
+            if highlight_jugs and i in highlight_jugs:
+                st.markdown(f"<p style='color: {color}; font-weight: bold;'>⬇️</p>", unsafe_allow_html=True)
+            
+            render_jug(state[i], capacities[i], f"Vaso {i}", color, height)
+
+
+def render_action_animation(
+    action: tuple,
+    state_before: tuple[int, ...],
+    state_after: tuple[int, ...],
+    capacities: list[int]
+) -> None:
+    """Render animation for a single action.
+    
+    Args:
+        action: The action tuple.
+        state_before: State before action.
+        state_after: State after action.
+        capacities: Jug capacities.
+    """
+    action_type = action[0]
+    
+    if action_type == ActionType.FILL:
+        jug_idx = action[1]
+        st.info(f"🔵 Riempimento vaso {jug_idx}...")
+        render_jugs_row(state_after, capacities, highlight_jugs=[jug_idx])
+        
+    elif action_type == ActionType.EMPTY:
+        jug_idx = action[1]
+        st.info(f"🟠 Svuotamento vaso {jug_idx}...")
+        render_jugs_row(state_after, capacities, highlight_jugs=[jug_idx])
+        
+    elif action_type == ActionType.POUR:
+        from_jug = action[1]
+        to_jug = action[2]
+        st.info(f"🟢 Travaso da vaso {from_jug} a vaso {to_jug}...")
+        render_jugs_row(state_after, capacities, highlight_jugs=[from_jug, to_jug])
 
 
 def main() -> None:
@@ -97,11 +164,12 @@ def main() -> None:
         
         st.subheader("Capacità dei vasi")
         capacities = []
+        default_caps = [3, 5, 8, 11, 13, 15]
         for i in range(num_jugs):
             cap = st.number_input(
                 f"Capacità vaso {i}",
                 min_value=1,
-                value=[3, 5][i] if i < 2 else 1,
+                value=default_caps[i] if i < len(default_caps) else 1,
                 step=1,
                 key=f"cap_{i}"
             )
@@ -117,74 +185,89 @@ def main() -> None:
         st.markdown("---")
         solve_button = st.button("🔍 Risolvi", type="primary", use_container_width=True)
     
+    # Initialize session state
+    if "solution" not in st.session_state:
+        st.session_state.solution = None
+        st.session_state.states = None
+        st.session_state.readable = None
+        st.session_state.current_step = 0
+    
     # Main content area
-    col1, col2 = st.columns([1, 1])
+    col1, col2 = st.columns([2, 1])
     
     with col1:
-        st.subheader("Stato Attuale dei Vasi")
-        initial_state = tuple([0] * len(capacities))
+        st.subheader("Visualizzazione Vasi")
         jug_placeholder = st.empty()
-        jug_placeholder.container()
-        render_jugs_row(initial_state, capacities)
     
     with col2:
-        st.subheader("Soluzione")
-        solution_placeholder = st.empty()
-        solution_placeholder.info("Premi 'Risolvi' per iniziare.")
+        st.subheader("Dettagli Azione")
+        info_placeholder = st.empty()
     
     # Solve logic
     if solve_button:
-        # Check mathematical feasibility
         if not can_solve(capacities, target):
-            solution_placeholder.error(format_no_solution(target))
+            st.error(format_no_solution(target))
             return
         
-        # Solve with BFS
         with st.spinner("Ricerca soluzione in corso..."):
             solution = bfs_solve(capacities, target)
         
         if solution is None:
-            solution_placeholder.error(format_no_solution(target))
+            st.error(format_no_solution(target))
             return
         
-        # Format solution
         structured, readable = format_solution(solution, capacities)
         states = simulate_solution(solution, capacities)
         
-        # Display solution info
-        solution_placeholder.success(f"✅ Soluzione trovata in {len(solution)} passi!")
+        st.session_state.solution = structured
+        st.session_state.states = states
+        st.session_state.readable = readable
+        st.session_state.current_step = 0
         
-        # Animated visualization
-        st.subheader("Animazione Soluzione")
+        st.success(f"✅ Soluzione trovata in {len(solution)} passi!")
+    
+    # Display solution with slider
+    if st.session_state.solution is not None:
+        solution = st.session_state.solution
+        states = st.session_state.states
+        readable = st.session_state.readable
         
-        for i, (action, description) in enumerate(zip(structured, readable)):
-            state_before = states[i]
-            state_after = states[i + 1]
+        # Slider for navigation
+        step = st.slider(
+            "Naviga tra i passaggi",
+            min_value=0,
+            max_value=len(solution),
+            value=st.session_state.current_step,
+            key="step_slider"
+        )
+        st.session_state.current_step = step
+        
+        # Display current state
+        if step == 0:
+            # Initial state
+            with jug_placeholder.container():
+                render_jugs_row(states[0], capacities)
+            with info_placeholder.container():
+                st.info("Stato iniziale: tutti i vasi vuoti")
+        else:
+            action = solution[step - 1]
+            state_before = states[step - 1]
+            state_after = states[step]
             
-            # Show step
-            with st.container():
-                col_a, col_b, col_c = st.columns([1, 2, 1])
-                
-                with col_a:
-                    st.markdown(f"**Passo {i + 1}**")
-                    st.caption(description)
-                
-                with col_b:
-                    render_jugs_row(state_after, capacities)
-                
-                with col_c:
-                    if i < len(structured) - 1:
-                        st.markdown("⬇️")
+            with jug_placeholder.container():
+                render_action_animation(action, state_before, state_after, capacities)
             
-            time.sleep(0.8)  # Animation delay
+            with info_placeholder.container():
+                st.markdown(f"**Passo {step}**")
+                st.markdown(f"**Azione:** {readable[step - 1]}")
+                st.markdown(f"**Prima:** {state_before}")
+                st.markdown(f"**Dopo:** {state_after}")
         
-        # Final state
-        st.markdown("---")
-        st.subheader("Riepilogo Passi")
-        for i, desc in enumerate(readable, 1):
-            st.markdown(f"{i}. {desc}")
+        # Show all steps summary
+        with st.expander("📋 Riepilogo completo"):
+            for i, desc in enumerate(readable, 1):
+                st.markdown(f"{i}. {desc}")
         
-        st.markdown("---")
         st.info(f"🎯 Stato finale: {states[-1]}")
 
 
