@@ -1,6 +1,7 @@
 """Tests for Water Jug Puzzle Solver."""
 
 import sys
+import pytest
 from pathlib import Path
 
 # Add the project root to the path so we can import from water_jug_solver
@@ -204,3 +205,28 @@ class TestFormatter:
         actual_states = simulate_solution(solution, capacities)
         assert actual_states == expected_states
         assert target in actual_states[-1]
+
+
+class TestRunGUI:
+    """Tests for run_gui.py launcher."""
+
+    def test_run_gui_exists_and_valid_syntax(self):
+        """Test run_gui.py exists and has valid Python syntax."""
+        gui_path = Path(__file__).parent / "run_gui.py"
+        # Check existence
+        assert gui_path.exists(), f"run_gui.py not found at {gui_path}"
+        # Check syntax validity
+        import py_compile
+        try:
+            py_compile.compile(str(gui_path), doraise=True)
+        except py_compile.PyCompileError as e:
+            pytest.fail(f"run_gui.py has invalid syntax: {e}")
+
+    def test_app_path_constructed_with_pathlib(self):
+        """Test app_path is correctly built using pathlib.Path."""
+        gui_path = Path(__file__).parent / "run_gui.py"
+        content = gui_path.read_text()
+        # Check pathlib is imported
+        assert "from pathlib import Path" in content, "pathlib.Path not imported in run_gui.py"
+        # Check app_path assignment uses Path(__file__).parent / "app.py"
+        assert 'app_path = Path(__file__).parent / "app.py"' in content, "app_path not constructed correctly with pathlib"
