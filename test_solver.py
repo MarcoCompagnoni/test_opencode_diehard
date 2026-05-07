@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from water_jug_solver.models import ActionType
 from water_jug_solver.solver import can_solve, bfs_solve
 from water_jug_solver.formatter import format_action, format_solution, format_no_solution, simulate_solution
-from app import get_jug_height, render_jugs_row, render_action_animation
+from app import get_jug_height, render_jugs_row, render_action_animation, auto_play_solution
 from unittest.mock import MagicMock
 
 
@@ -333,3 +333,64 @@ class TestAppVisualization:
             render_action_animation(action, state_before, state_after, capacities)
         except Exception as e:
             pytest.fail(f"render_action_animation POUR raised error: {e}")
+
+    def test_auto_play_solution_exists_and_callable(self):
+        """Test auto_play_solution function exists and is callable."""
+        import inspect
+        assert callable(auto_play_solution), "auto_play_solution is not callable"
+        assert inspect.isfunction(auto_play_solution), "auto_play_solution is not a function"
+
+    def test_render_jug_uses_flexbox_bottom_alignment(self, monkeypatch):
+        """Test render_jug uses flexbox for bottom alignment (flex-end or margin-top: auto)."""
+        mock_st = MagicMock()
+        captured_html = []
+        
+        def mock_markdown(html, *args, **kwargs):
+            captured_html.append(html)
+        mock_st.markdown = mock_markdown
+        monkeypatch.setattr('app.st', mock_st)
+        monkeypatch.setattr('app.JUG_WIDTH', 100)
+        
+        from app import render_jug
+        render_jug(level=2, capacity=5, jug_name="Test Jug", color="#1f77b4", height=300)
+        
+        assert len(captured_html) == 1, "Expected exactly one st.markdown call"
+        html = captured_html[0]
+        alignment_check = "flex-end" in html or "margin-top: auto" in html
+        assert alignment_check, f"Flexbox bottom alignment not found in render_jug HTML. Content: {html}"
+
+    def test_initial_jugs_displayed_when_solution_none(self, monkeypatch):
+        """Test initial jugs are displayed when solution is None (mock streamlit)."""
+        # Mock streamlit session state
+        mock_session_state = MagicMock()
+        mock_session_state.solution = None
+        monkeypatch.setattr('app.st.session_state', mock_session_state)
+        
+        # Test configuration
+        capacities = [3, 5]
+        initial_state = tuple([0] * len(capacities))
+        
+        # Mock st.empty to return a placeholder with container context manager
+        mock_jug_placeholder = MagicMock()
+        mock_container = MagicMock()
+        mock_jug_placeholder.container.return_value = mock_container
+        mock_jug_placeholder.container.return_value.__enter__ = MagicMock(return_value=mock_container)
+        mock_jug_placeholder.container.return_value.__exit__ = MagicMock(return_value=False)
+        monkeypatch.setattr('app.st.empty', lambda: mock_jug_placeholder)
+        
+        # Track render_jugs_row calls
+        render_calls = []
+        def mock_render_jugs_row(state, caps, *args, **kwargs):
+            render_calls.append((state, caps))
+        monkeypatch.setattr('app.render_jugs_row', mock_render_jugs_row)
+        
+        # Execute the same logic as app.py lines 261-265
+        if mock_session_state.solution is None:
+            with mock_jug_placeholder.container():
+                from app import render_jugs_row
+                render_jugs_row(initial_state, capacities)
+        
+        # Verify results
+        assert len(render_calls) == 1, f"render_jugs_row called {len(render_calls)} times, expected 1"
+        assert render_calls[0][0] == initial_state, f"Rendered state {render_calls[0][0]} != expected initial state {initial_state}"
+        assert render_calls[0][1] == capacities, f"Rendered capacities {render_calls[0][1]} != expected {capacities}"

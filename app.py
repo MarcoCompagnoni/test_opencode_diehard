@@ -3,11 +3,11 @@
 Provides visual interface with animated jug visualization and interactive slider.
 """
 
-from typing import Optional
 import streamlit as st
 from water_jug_solver.solver import bfs_solve, can_solve
 from water_jug_solver.formatter import format_solution, format_no_solution, simulate_solution
 from water_jug_solver.models import ActionType
+from typing import Optional
 
 # Page config
 st.set_page_config(
@@ -44,7 +44,7 @@ def render_jug(
     color: str,
     height: int
 ) -> None:
-    """Render a single jug with proportional height.
+    """Render a single jug with proportional height, aligned to bottom.
     
     Args:
         level: Current water level.
@@ -57,28 +57,30 @@ def render_jug(
     
     st.markdown(
         f"""
-        <div style="text-align: center;">
-            <div style="
-                position: relative;
-                width: {JUG_WIDTH}px;
-                height: {height}px;
-                border: 3px solid #333;
-                border-radius: 0 0 15px 15px;
-                margin: 0 auto;
-                background: #f8f9fa;
-                overflow: hidden;
-            ">
+        <div style="text-align: center; display: flex; flex-direction: column; justify-content: flex-end; height: {height + 80}px;">
+            <div style="margin-top: auto;">
                 <div style="
-                    position: absolute;
-                    bottom: 0;
-                    width: 100%;
-                    height: {fill_height}px;
-                    background: {color};
-                    transition: height 0.5s ease;
-                "></div>
+                    position: relative;
+                    width: {JUG_WIDTH}px;
+                    height: {height}px;
+                    border: 3px solid #333;
+                    border-radius: 0 0 15px 15px;
+                    margin: 0 auto;
+                    background: #f8f9fa;
+                    overflow: hidden;
+                ">
+                    <div style="
+                        position: absolute;
+                        bottom: 0;
+                        width: 100%;
+                        height: {fill_height}px;
+                        background: {color};
+                        transition: height 0.5s ease;
+                    "></div>
+                </div>
+                <p style="margin-top: 10px; font-weight: bold;">{jug_name}</p>
+                <p style="color: #666; font-size: 14px;">{level} / {capacity}</p>
             </div>
-            <p style="margin-top: 10px; font-weight: bold;">{jug_name}</p>
-            <p style="color: #666; font-size: 14px;">{level} / {capacity}</p>
         </div>
         """,
         unsafe_allow_html=True
@@ -105,9 +107,6 @@ def render_jugs_row(
         with cols[i]:
             color = COLORS[i % len(COLORS)]
             height = get_jug_height(capacities[i], max_capacity)
-            
-            if highlight_jugs and i in highlight_jugs:
-                st.markdown(f"<p style='color: {color}; font-weight: bold;'>⬇️</p>", unsafe_allow_html=True)
             
             render_jug(state[i], capacities[i], f"Vaso {i}", color, height)
 
@@ -143,6 +142,60 @@ def render_action_animation(
         to_jug = action[2]
         st.info(f"🟢 Travaso da vaso {from_jug} a vaso {to_jug}...")
         render_jugs_row(state_after, capacities, highlight_jugs=[from_jug, to_jug])
+
+
+def auto_play_solution(
+    solution: list,
+    states: list,
+    readable: list,
+    capacities: list[int]
+) -> None:
+    """Auto-play the solution with smooth animation.
+    
+    Args:
+        solution: List of actions.
+        states: List of states during solution.
+        readable: List of readable action descriptions.
+        capacities: Jug capacities.
+    """
+    total_steps = len(solution)
+    
+    # Progress bar
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    
+    for step in range(total_steps + 1):
+        if step == 0:
+            # Initial state
+            st.session_state.current_step = 0
+            with st.session_state.jug_placeholder.container():
+                render_jugs_row(states[0], capacities)
+            with st.session_state.info_placeholder.container():
+                st.info("Stato iniziale: tutti i vasi vuoti")
+        else:
+            action = solution[step - 1]
+            state_before = states[step - 1]
+            state_after = states[step]
+            
+            st.session_state.current_step = step
+            with st.session_state.jug_placeholder.container():
+                render_action_animation(action, state_before, state_after, capacities)
+            with st.session_state.info_placeholder.container():
+                st.markdown(f"**Passo {step}**")
+                st.markdown(f"**Azione:** {readable[step - 1]}")
+                st.markdown(f"**Prima:** {state_before}")
+                st.markdown(f"**Dopo:** {state_after}")
+        
+        # Update progress
+        progress_bar.progress((step + 1) / (total_steps + 1))
+        status_text.text(f"Passo {step}/{total_steps}")
+        
+        if step < total_steps:
+            import time
+            time.sleep(0.8)  # Animation delay
+    
+    status_text.text("✅ Soluzione completata!")
+    st.balloons()
 
 
 def main() -> None:
@@ -191,6 +244,7 @@ def main() -> None:
         st.session_state.states = None
         st.session_state.readable = None
         st.session_state.current_step = 0
+        st.session_state.auto_play = False
     
     # Main content area
     col1, col2 = st.columns([2, 1])
@@ -198,10 +252,18 @@ def main() -> None:
     with col1:
         st.subheader("Visualizzazione Vasi")
         jug_placeholder = st.empty()
+        st.session_state.jug_placeholder = jug_placeholder
     
     with col2:
         st.subheader("Dettagli Azione")
         info_placeholder = st.empty()
+        st.session_state.info_placeholder = info_placeholder
+    
+    # Show initial jugs with current capacities (before solving)
+    if st.session_state.solution is None:
+        initial_state = tuple([0] * len(capacities))
+        with jug_placeholder.container():
+            render_jugs_row(initial_state, capacities)
     
     # Solve logic
     if solve_button:
@@ -226,21 +288,30 @@ def main() -> None:
         
         st.success(f"✅ Soluzione trovata in {len(solution)} passi!")
     
-    # Display solution with slider
+    # Display solution with slider and play button
     if st.session_state.solution is not None:
         solution = st.session_state.solution
         states = st.session_state.states
         readable = st.session_state.readable
         
-        # Slider for navigation
-        step = st.slider(
-            "Naviga tra i passaggi",
-            min_value=0,
-            max_value=len(solution),
-            value=st.session_state.current_step,
-            key="step_slider"
-        )
+        # Controls: slider and play button
+        col_play, col_slider = st.columns([1, 3])
+        with col_play:
+            play_button = st.button("▶️ Play", type="secondary", use_container_width=True)
+        with col_slider:
+            step = st.slider(
+                "Naviga tra i passaggi",
+                min_value=0,
+                max_value=len(solution),
+                value=st.session_state.current_step,
+                key="step_slider"
+            )
         st.session_state.current_step = step
+        
+        # Auto-play logic
+        if play_button:
+            auto_play_solution(solution, states, readable, capacities)
+            return
         
         # Display current state
         if step == 0:
