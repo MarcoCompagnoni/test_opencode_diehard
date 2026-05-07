@@ -16,8 +16,10 @@ The solver includes a mathematical pre-check using the Greatest Common Divisor (
 - **Multiple output formats**: Structured actions and human-readable descriptions
 - **Animated Streamlit GUI**: Interactive web interface with:
   - **Proportional jug scaling**: Jug height dynamically adjusted based on capacity
-  - **Bottom-aligned jugs**: Jugs visually aligned to the bottom (like on a table) using flexbox
-  - **Interactive slider**: Navigate through solution steps with real-time visualization
+   - **Bottom-aligned jugs**: Jugs visually aligned to the bottom (like on a table) using spacer divs
+   - **Interactive slider**: Navigate through solution steps with real-time visualization
+   - **Play button**: Auto-play animation with 2.0s pause between steps for better visibility
+   - **New Game button**: Reset and start a new puzzle instantly
   - **Play button**: Automatic animation of the solution with timed step progression
   - **Initial jug display**: Shows empty jugs with selected capacities before solving
   - **Action animation**: Color-coded animations for FILL (🔵), EMPTY (🟠), and POUR (🟢) operations

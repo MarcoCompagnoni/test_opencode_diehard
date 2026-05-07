@@ -9,7 +9,7 @@
 - [x] **2026-05-07** - CLI entry point implemented: `main.py` with command-line interface
 - [x] **2026-05-07** - Output formatter implemented: `formatter.py` for structured and readable output
 - [x] **2026-05-07** - Animated visualization added: `app.py` updated with proportional jug scaling, interactive slider for step navigation, and action animation
-- [x] **2026-05-07** - UI fixes in `app.py`: removed unnecessary down arrow emojis, aligned jugs to bottom using flexbox, added Play button for auto-animation, show initial jugs before solving
+- [x] **2026-05-07** - UI fixes in `app.py`: removed unnecessary down arrow emojis, aligned jugs to bottom using spacer divs, added Play button for auto-animation, show initial jugs before solving, added "Nuova Partita" button, increased animation pause to 2.0s
 - [ ] **Next Step** - Implement `tree_viz.py` for BFS tree visualization
 - [ ] Add BFS generator variant in `solver.py` for Streamlit real-time updates
 

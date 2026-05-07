@@ -44,7 +44,7 @@ def render_jug(
     color: str,
     height: int
 ) -> None:
-    """Render a single jug with proportional height, aligned to bottom.
+    """Render a single jug with proportional height.
     
     Args:
         level: Current water level.
@@ -57,30 +57,28 @@ def render_jug(
     
     st.markdown(
         f"""
-        <div style="text-align: center; display: flex; flex-direction: column; justify-content: flex-end; height: {height + 80}px;">
-            <div style="margin-top: auto;">
+        <div style="text-align: center;">
+            <div style="
+                position: relative;
+                width: {JUG_WIDTH}px;
+                height: {height}px;
+                border: 3px solid #333;
+                border-radius: 0 0 15px 15px;
+                margin: 0 auto;
+                background: #f8f9fa;
+                overflow: hidden;
+            ">
                 <div style="
-                    position: relative;
-                    width: {JUG_WIDTH}px;
-                    height: {height}px;
-                    border: 3px solid #333;
-                    border-radius: 0 0 15px 15px;
-                    margin: 0 auto;
-                    background: #f8f9fa;
-                    overflow: hidden;
-                ">
-                    <div style="
-                        position: absolute;
-                        bottom: 0;
-                        width: 100%;
-                        height: {fill_height}px;
-                        background: {color};
-                        transition: height 0.5s ease;
-                    "></div>
-                </div>
-                <p style="margin-top: 10px; font-weight: bold;">{jug_name}</p>
-                <p style="color: #666; font-size: 14px;">{level} / {capacity}</p>
+                    position: absolute;
+                    bottom: 0;
+                    width: 100%;
+                    height: {fill_height}px;
+                    background: {color};
+                    transition: height 0.5s ease;
+                "></div>
             </div>
+            <p style="margin-top: 10px; font-weight: bold;">{jug_name}</p>
+            <p style="color: #666; font-size: 14px;">{level} / {capacity}</p>
         </div>
         """,
         unsafe_allow_html=True
@@ -92,7 +90,7 @@ def render_jugs_row(
     capacities: list[int],
     highlight_jugs: Optional[list[int]] = None
 ) -> None:
-    """Render all jugs with proportional heights.
+    """Render all jugs with proportional heights, aligned to bottom.
     
     Args:
         state: Current water levels.
@@ -100,15 +98,18 @@ def render_jugs_row(
         highlight_jugs: List of jug indices to highlight.
     """
     max_capacity = max(capacities) if capacities else 1
+    max_height = get_jug_height(max_capacity, max_capacity)
     num_jugs = len(capacities)
     
     cols = st.columns(num_jugs)
     for i in range(num_jugs):
         with cols[i]:
-            color = COLORS[i % len(COLORS)]
             height = get_jug_height(capacities[i], max_capacity)
-            
-            render_jug(state[i], capacities[i], f"Vaso {i}", color, height)
+            # Spacer to align jugs to bottom
+            spacer_height = max_height - height
+            if spacer_height > 0:
+                st.markdown(f'<div style="height: {spacer_height}px;"></div>', unsafe_allow_html=True)
+            render_jug(state[i], capacities[i], f"Vaso {i}", COLORS[i % len(COLORS)], height)
 
 
 def render_action_animation(
@@ -192,7 +193,7 @@ def auto_play_solution(
         
         if step < total_steps:
             import time
-            time.sleep(0.8)  # Animation delay
+            time.sleep(2.0)  # Longer pause for better visibility
     
     status_text.text("✅ Soluzione completata!")
     st.balloons()
@@ -294,8 +295,8 @@ def main() -> None:
         states = st.session_state.states
         readable = st.session_state.readable
         
-        # Controls: slider and play button
-        col_play, col_slider = st.columns([1, 3])
+        # Controls: slider, play button, new game button
+        col_play, col_slider, col_new = st.columns([1, 3, 1])
         with col_play:
             play_button = st.button("▶️ Play", type="secondary", use_container_width=True)
         with col_slider:
@@ -306,6 +307,17 @@ def main() -> None:
                 value=st.session_state.current_step,
                 key="step_slider"
             )
+        with col_new:
+            new_game = st.button("🔄 Nuova Partita", type="primary", use_container_width=True)
+        
+        # New game logic
+        if new_game:
+            st.session_state.solution = None
+            st.session_state.states = None
+            st.session_state.readable = None
+            st.session_state.current_step = 0
+            st.rerun()
+        
         st.session_state.current_step = step
         
         # Auto-play logic

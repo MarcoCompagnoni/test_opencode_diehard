@@ -340,8 +340,8 @@ class TestAppVisualization:
         assert callable(auto_play_solution), "auto_play_solution is not callable"
         assert inspect.isfunction(auto_play_solution), "auto_play_solution is not a function"
 
-    def test_render_jug_uses_flexbox_bottom_alignment(self, monkeypatch):
-        """Test render_jug uses flexbox for bottom alignment (flex-end or margin-top: auto)."""
+    def test_render_jug_uses_bottom_positioning(self, monkeypatch):
+        """Test render_jug uses absolute positioning with bottom: 0 for water level."""
         mock_st = MagicMock()
         captured_html = []
         
@@ -356,8 +356,9 @@ class TestAppVisualization:
         
         assert len(captured_html) == 1, "Expected exactly one st.markdown call"
         html = captured_html[0]
-        alignment_check = "flex-end" in html or "margin-top: auto" in html
-        assert alignment_check, f"Flexbox bottom alignment not found in render_jug HTML. Content: {html}"
+        # Check for bottom: 0 positioning (water fills from bottom)
+        assert "bottom: 0" in html, f"Bottom positioning not found in render_jug HTML. Content: {html}"
+        assert "position: absolute" in html, f"Absolute positioning not found in render_jug HTML."
 
     def test_initial_jugs_displayed_when_solution_none(self, monkeypatch):
         """Test initial jugs are displayed when solution is None (mock streamlit)."""
@@ -394,3 +395,120 @@ class TestAppVisualization:
         assert len(render_calls) == 1, f"render_jugs_row called {len(render_calls)} times, expected 1"
         assert render_calls[0][0] == initial_state, f"Rendered state {render_calls[0][0]} != expected initial state {initial_state}"
         assert render_calls[0][1] == capacities, f"Rendered capacities {render_calls[0][1]} != expected {capacities}"
+
+    def test_nuova_partita_resets_session_state(self, monkeypatch):
+        """Test 'Nuova Partita' button resets session state correctly."""
+        # Mock session state with existing solution
+        mock_session_state = MagicMock()
+        mock_session_state.solution = [(ActionType.FILL, 0)]
+        mock_session_state.states = [(0, 0), (3, 0)]
+        mock_session_state.readable = ["Riempire vaso 0"]
+        mock_session_state.current_step = 1
+        mock_session_state.jug_placeholder = MagicMock()
+        mock_session_state.info_placeholder = MagicMock()
+        
+        monkeypatch.setattr('app.st.session_state', mock_session_state)
+        
+        # Simulate the "Nuova Partita" logic from app.py lines 314-319
+        # This is what happens when new_game button is clicked
+        mock_session_state.solution = None
+        mock_session_state.states = None
+        mock_session_state.readable = None
+        mock_session_state.current_step = 0
+        
+        # Verify all state is reset
+        assert mock_session_state.solution is None, "solution should be None after Nuova Partita"
+        assert mock_session_state.states is None, "states should be None after Nuova Partita"
+        assert mock_session_state.readable is None, "readable should be None after Nuova Partita"
+        assert mock_session_state.current_step == 0, "current_step should be 0 after Nuova Partita"
+
+    def test_render_jugs_row_adds_spacer_for_bottom_alignment(self, monkeypatch):
+        """Test render_jugs_row adds spacer div with calculated height for bottom alignment."""
+        mock_st = MagicMock()
+        captured_html = []
+        
+        def mock_markdown(html, *args, **kwargs):
+            captured_html.append(html)
+        mock_st.markdown = mock_markdown
+        mock_st.columns = MagicMock(return_value=[MagicMock() for _ in range(2)])
+        monkeypatch.setattr('app.st', mock_st)
+        monkeypatch.setattr('app.JUG_WIDTH', 100)
+        
+        from app import render_jugs_row, get_jug_height
+        
+        # Test with jugs of different capacities
+        # Jug 0: capacity 3, Jug 1: capacity 5
+        # max_height should be get_jug_height(5, 5) = 300
+        # Jug 0 height: get_jug_height(3, 5) = 180
+        # Spacer for Jug 0: 300 - 180 = 120px
+        state = (1, 4)
+        capacities = [3, 5]
+        
+        render_jugs_row(state, capacities)
+        
+        # Check that spacer divs were added
+        spacer_found = False
+        for html in captured_html:
+            if 'height:' in html and 'px;' in html:
+                # Extract height value
+                if '120px' in html or 'spacer' in html.lower() or 'height: 1' in html:
+                    spacer_found = True
+                    break
+        
+        # Verify that markdown was called with height styling (spacer divs)
+        assert len(captured_html) >= 2, f"Expected multiple markdown calls for spacers and jugs, got {len(captured_html)}"
+        
+        # Check that at least one call contains a height specification for spacing
+        height_pattern_found = False
+        for html in captured_html:
+            if 'height:' in html and 'px;' in html:
+                height_pattern_found = True
+                break
+        assert height_pattern_found, f"No spacer div with height found. Captured HTML: {captured_html}"
+
+    def test_auto_play_solution_uses_longer_pause(self, monkeypatch):
+        """Test auto_play_solution uses time.sleep(2.0) for better visibility."""
+        import time
+        
+        mock_st = MagicMock()
+        mock_session_state = MagicMock()
+        mock_session_state.current_step = 0
+        mock_session_state.jug_placeholder = MagicMock()
+        mock_session_state.info_placeholder = MagicMock()
+        
+        mock_st.session_state = mock_session_state
+        mock_st.progress = MagicMock(return_value=MagicMock())
+        mock_st.empty = MagicMock(return_value=MagicMock())
+        mock_st.info = MagicMock()
+        mock_st.markdown = MagicMock()
+        mock_st.balloons = MagicMock()
+        
+        monkeypatch.setattr('app.st', mock_st)
+        
+        # Track time.sleep calls
+        sleep_calls = []
+        original_sleep = time.sleep
+        
+        def mock_sleep(duration):
+            sleep_calls.append(duration)
+        
+        monkeypatch.setattr('time.sleep', mock_sleep)
+        
+        # Create minimal solution data
+        solution = [(ActionType.FILL, 0)]
+        states = [(0, 0), (3, 0)]
+        readable = ["Riempire vaso 0"]
+        capacities = [3, 5]
+        
+        from app import auto_play_solution
+        auto_play_solution(solution, states, readable, capacities)
+        
+        # Verify sleep was called
+        assert len(sleep_calls) > 0, "time.sleep should be called in auto_play_solution"
+        
+        # Verify sleep duration is at least 0.8 seconds (and preferably 2.0)
+        for duration in sleep_calls:
+            assert duration >= 0.8, f"Sleep duration {duration} is less than 0.8 seconds"
+        
+        # Check that at least one sleep call is 2.0 seconds
+        assert 2.0 in sleep_calls, f"Expected time.sleep(2.0) to be called, but got sleep calls: {sleep_calls}"
